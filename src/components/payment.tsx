@@ -1,0 +1,317 @@
+import { useEffect, useId, useRef, useState } from 'react'
+import { Html5Qrcode } from 'html5-qrcode'
+import QRCode from 'qrcode'
+import { formatCurrency, formatDateTime } from '../api/mockClient'
+import type { PaymentSession, Product, TransactionItem } from '../types/payment'
+import { CheckIcon, CloseIcon, QrIcon } from './icons'
+import { PrimaryButton, SecondaryButton, SectionCard } from './ui'
+
+export function CardVisual({
+  alias,
+  balance,
+  numberMasked,
+}: {
+  alias: string
+  balance: number
+  numberMasked: string
+}) {
+  return (
+    <SectionCard className="bg-[linear-gradient(135deg,_#e0f2fe,_#eff6ff_58%,_#e2e8f0)]">
+      <div className="mb-3 flex items-center justify-between text-xs font-bold tracking-[0.24em] text-slate-400">
+        <span>ARCHITECTURAL PLAN 01</span>
+        <span>VIRTUAL PAY</span>
+      </div>
+      <div className="space-y-2">
+        <p className="text-sm font-bold text-slate-500">현재 잔액</p>
+        <p className="text-4xl font-black tracking-[-0.05em] text-slate-800">{formatCurrency(balance)}</p>
+        <p className="text-sm font-semibold text-slate-500">{alias} · {numberMasked}</p>
+      </div>
+    </SectionCard>
+  )
+}
+
+export function ProductCard({
+  product,
+  quantity,
+  onChange,
+}: {
+  product: Product
+  quantity: number
+  onChange: (next: number) => void
+}) {
+  return (
+    <article className="overflow-hidden rounded-[24px] bg-white p-4 shadow-[0_10px_30px_rgba(148,163,184,0.16)]">
+      <img src={product.image} alt={product.name} className="h-36 w-full rounded-[18px] object-cover" />
+      <div className="mt-4">
+        <h3 className="text-xl font-extrabold tracking-[-0.03em] text-slate-800">{product.name}</h3>
+        <p className="mt-1 text-2xl font-black text-blue-600">{formatCurrency(product.price)}</p>
+      </div>
+      <div className="mt-4 flex items-center justify-between rounded-2xl bg-slate-100 px-3 py-2">
+        <button type="button" className="text-3xl text-slate-400" onClick={() => onChange(Math.max(quantity - 1, 0))}>-</button>
+        <span className="text-lg font-black text-slate-700">{quantity}</span>
+        <button type="button" className="text-3xl text-blue-600" onClick={() => onChange(quantity + 1)}>+</button>
+      </div>
+    </article>
+  )
+}
+
+export function PaymentSummary({
+  amount,
+  merchant,
+  onPrimary,
+  primaryLabel,
+  onSecondary,
+  secondaryLabel,
+}: {
+  amount: number
+  merchant: string
+  onPrimary?: () => void
+  primaryLabel?: string
+  onSecondary?: () => void
+  secondaryLabel?: string
+}) {
+  return (
+    <div className="sticky bottom-0 mt-6 rounded-[26px] bg-[#e6f0f8] p-4 shadow-[0_-6px_20px_rgba(148,163,184,0.18)]">
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <p className="text-sm font-bold text-slate-400">총 결제 금액</p>
+          <p className="text-3xl font-black tracking-[-0.05em] text-slate-800">{formatCurrency(amount)}</p>
+          <p className="mt-1 text-sm font-semibold text-slate-500">{merchant}</p>
+        </div>
+        <div className="flex gap-2">
+          {secondaryLabel && onSecondary ? (
+            <SecondaryButton onClick={onSecondary}>{secondaryLabel}</SecondaryButton>
+          ) : null}
+          {primaryLabel && onPrimary ? <PrimaryButton onClick={onPrimary}>{primaryLabel}</PrimaryButton> : null}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export function QrPlaceholder({ code }: { code: string }) {
+  const [src, setSrc] = useState('')
+
+  useEffect(() => {
+    QRCode.toDataURL(code, {
+      margin: 2,
+      width: 360,
+      color: {
+        dark: '#000000',
+        light: '#ffffff',
+      },
+    }).then(setSrc)
+  }, [code])
+
+  return (
+    <div className="rounded-[28px] border border-slate-100 bg-white p-6 shadow-[0_10px_30px_rgba(148,163,184,0.12)]">
+      <div className="mx-auto flex h-64 w-64 items-center justify-center rounded-[20px] border-2 border-blue-200 bg-blue-50 p-3">
+        {src ? <img src={src} alt="payment qr code" className="h-full w-full rounded-xl" /> : null}
+      </div>
+      <p className="mt-4 text-center text-sm font-bold tracking-[0.24em] text-slate-400">{code}</p>
+    </div>
+  )
+}
+
+export function ScannerPreview({
+  hasPayment,
+  onDetected,
+}: {
+  hasPayment: boolean
+  onDetected: (decodedText: string) => void
+}) {
+  const scannerId = useId().replace(/[:]/g, '')
+  const scannerRef = useRef<Html5Qrcode | null>(null)
+  const [cameraState, setCameraState] = useState<
+    'idle' | 'requesting' | 'ready' | 'blocked' | 'unsupported' | 'insecure'
+  >('idle')
+  const [scanState, setScanState] = useState('SCANNER_IDLE')
+  const [lastDecoded, setLastDecoded] = useState('')
+
+  useEffect(() => {
+    const isSecure =
+      window.isSecureContext ||
+      window.location.hostname === 'localhost' ||
+      window.location.hostname === '127.0.0.1'
+
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setCameraState('unsupported')
+      return
+    }
+
+    if (!isSecure) {
+      setCameraState('insecure')
+      return
+    }
+
+    let cancelled = false
+
+    const startCamera = async () => {
+      try {
+        setCameraState('requesting')
+        setScanState('SCANNER_STARTING')
+        const scanner = new Html5Qrcode(scannerId)
+        scannerRef.current = scanner
+
+        await scanner.start(
+          { facingMode: 'environment' },
+          {
+            fps: 10,
+            qrbox: { width: 260, height: 260 },
+            aspectRatio: 1,
+          },
+          (decodedText) => {
+            if (!cancelled) {
+              setLastDecoded(decodedText)
+              setScanState('SCAN_SUCCESS')
+              onDetected(decodedText)
+            }
+          },
+          (errorMessage) => {
+            if (!cancelled && !lastDecoded) {
+              setScanState(errorMessage.includes('NotFound') ? 'SCANNING' : 'SCANNING_ACTIVE')
+            }
+          },
+        )
+
+        if (!cancelled) {
+          setCameraState('ready')
+          setScanState('SCANNING')
+        }
+      } catch {
+        setCameraState('blocked')
+        setScanState('SCANNER_ERROR')
+      }
+    }
+
+    startCamera()
+
+    return () => {
+      cancelled = true
+      const scanner = scannerRef.current
+      scannerRef.current = null
+      if (scanner?.isScanning) {
+        scanner
+          .stop()
+          .then(() => {
+            scanner.clear()
+          })
+          .catch(() => undefined)
+      } else if (scanner) {
+        scanner.clear()
+      }
+    }
+  }, [onDetected, scannerId])
+
+  const helperText =
+    cameraState === 'insecure'
+      ? '카메라는 HTTPS 또는 localhost에서만 동작합니다.'
+      : cameraState === 'requesting'
+        ? '카메라 권한을 요청하고 있습니다.'
+      : cameraState === 'blocked'
+        ? '카메라 권한이 거부되었거나 사용할 수 없습니다.'
+        : cameraState === 'unsupported'
+          ? '이 브라우저는 카메라 미리보기를 지원하지 않습니다.'
+          : hasPayment
+            ? '프레임 안에 QR 코드를 맞춰주세요.'
+            : '대기 중인 결제 QR이 없습니다.'
+
+  return (
+    <div className="rounded-[30px] bg-[linear-gradient(180deg,_#a7c8f7,_#c7edf9)] px-6 py-10 text-center">
+      <div className="relative mx-auto h-[340px] w-full overflow-hidden rounded-[26px] border border-white/20 bg-slate-900/20">
+        <div id={scannerId} className="absolute inset-0 z-0 h-full w-full overflow-hidden [&_video]:h-full [&_video]:w-full [&_video]:object-cover [&_video]:rounded-[26px]" />
+        {cameraState !== 'ready' ? (
+          <div className="absolute inset-0 flex items-center justify-center bg-white/10 px-6 text-center text-sm font-bold text-white/85">
+            {cameraState === 'insecure'
+              ? '보안 연결이 아니라 카메라를 열 수 없습니다.'
+              : cameraState === 'requesting'
+                ? '카메라를 여는 중입니다.'
+              : cameraState === 'blocked'
+                ? '카메라 권한 허용 후 다시 접속해주세요.'
+                : cameraState === 'unsupported'
+                  ? '카메라 미리보기를 지원하지 않는 환경입니다.'
+                  : '카메라를 준비하는 중입니다.'}
+          </div>
+        ) : null}
+        <div className="absolute inset-10 z-10 rounded-[30px] border-0">
+          <div className="absolute left-0 top-0 h-12 w-12 border-l-4 border-t-4 border-blue-600" />
+          <div className="absolute right-0 top-0 h-12 w-12 border-r-4 border-t-4 border-blue-600" />
+          <div className="absolute bottom-0 left-0 h-12 w-12 border-b-4 border-l-4 border-blue-600" />
+          <div className="absolute bottom-0 right-0 h-12 w-12 border-b-4 border-r-4 border-blue-600" />
+          <div className="absolute left-0 right-0 top-1/2 h-px -translate-y-1/2 bg-blue-400" />
+        </div>
+      </div>
+      <p className="mt-8 text-2xl font-black tracking-[-0.04em] text-white">사용자의 QR 코드를 스캔하세요.</p>
+      <p className="mx-auto mt-3 inline-flex rounded-full bg-slate-800/45 px-4 py-2 text-sm font-semibold text-white/80">
+        {helperText}
+      </p>
+      <div className="mx-auto mt-8 flex w-fit items-center rounded-[22px] bg-white/15 px-8 py-4 text-white shadow-[0_10px_25px_rgba(59,130,246,0.25)]">
+        <QrIcon className="mr-3 h-6 w-6" />
+        <span className="font-bold">html5-qrcode 연결 가능 영역</span>
+      </div>
+      <div className="mt-4 space-y-1 text-xs font-bold tracking-[0.16em] text-white/70">
+        <p>CAMERA STATE: {cameraState.toUpperCase()}</p>
+        <p>SCAN STATE: {scanState}</p>
+        {lastDecoded ? <p className="truncate">LAST QR: {lastDecoded}</p> : null}
+      </div>
+    </div>
+  )
+}
+
+export function StatusTimeline({ status }: { status: PaymentSession['status'] }) {
+  const steps = [
+    { key: 'WAITING', label: '결제 요청 접수' },
+    { key: 'SCANNED', label: '결제 스캔 완료' },
+    { key: 'APPROVED', label: '결제 승인 완료' },
+    { key: 'COMPLETED', label: '결제 처리 완료' },
+  ]
+  const order = ['WAITING', 'SCANNED', 'APPROVED', 'COMPLETED']
+  const currentIndex = Math.max(order.indexOf(status), 0)
+
+  return (
+    <SectionCard className="bg-slate-50">
+      <p className="mb-4 text-sm font-bold text-slate-500">승인 프로세스</p>
+      <div className="space-y-4">
+        {steps.map((step, index) => {
+          const done = index <= currentIndex
+          const rejected = status === 'REJECTED'
+          return (
+            <div key={step.key} className="flex items-start gap-3">
+              <div
+                className={`mt-0.5 flex h-7 w-7 items-center justify-center rounded-full ${
+                  rejected && index > 1
+                    ? 'bg-slate-200 text-slate-400'
+                    : done
+                      ? 'bg-blue-600 text-white'
+                      : 'border border-slate-300 bg-white text-slate-400'
+                }`}
+              >
+                {rejected && index > 1 ? <CloseIcon className="h-4 w-4" /> : <CheckIcon className="h-4 w-4" />}
+              </div>
+              <p className={`font-bold ${done ? 'text-blue-600' : 'text-slate-400'}`}>{step.label}</p>
+            </div>
+          )
+        })}
+      </div>
+    </SectionCard>
+  )
+}
+
+export function TransactionList({ items }: { items: TransactionItem[] }) {
+  return (
+    <div className="space-y-3">
+      {items.map((item) => (
+        <article key={item.id} className="flex items-center justify-between rounded-[24px] bg-white p-4 shadow-[0_10px_30px_rgba(148,163,184,0.12)]">
+          <div>
+            <p className="text-xl font-black tracking-[-0.04em] text-slate-800">{item.merchant}</p>
+            <p className="mt-1 text-sm font-semibold text-slate-400">{formatDateTime(item.approvedAt)}</p>
+          </div>
+          <p className={`text-2xl font-black ${item.amount > 0 ? 'text-blue-600' : 'text-slate-700'}`}>
+            {item.amount > 0 ? '+' : ''}
+            {formatCurrency(item.amount)}
+          </p>
+        </article>
+      ))}
+    </div>
+  )
+}
