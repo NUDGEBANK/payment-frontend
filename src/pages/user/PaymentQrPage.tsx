@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { cancelPaymentSession, fetchPaymentSession, refreshPaymentQr } from '../../api/userApi'
 import { formatCurrency } from '../../api/mockClient'
 import { useUserApp } from '../../app/providers/UserAppProvider'
@@ -72,15 +72,16 @@ export function PaymentQrPage() {
           <SectionCard className="text-center">
             <p className="text-sm font-bold text-slate-400">결제 금액</p>
             <p className="mt-2 text-5xl font-black tracking-[-0.06em] text-slate-800">{formatCurrency(session.amount)}</p>
+            <p className="text-base font-semibold text-slate-400">{itemLabel}</p>
           </SectionCard>
           <QrPlaceholder code={session.qrCode} />
           <div className="space-y-2 text-center">
             <p className="text-3xl font-black tracking-[-0.05em] text-slate-800">결제용 QR 코드가 생성되었습니다.</p>
-            <p className="text-base font-semibold text-slate-400">{itemLabel}</p>
             <p className="text-base font-bold text-slate-500">남은 시간 {remaining}</p>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="flex justify-center">
             <SecondaryButton
+              className="min-w-40"
               onClick={async () => {
                 if (!paymentId) return
                 const refreshed = await refreshPaymentQr(paymentId)
@@ -88,15 +89,13 @@ export function PaymentQrPage() {
                 setActivePayment(refreshed)
               }}
             >
-              새로고침
+              시간 연장
             </SecondaryButton>
-            <PrimaryButton onClick={() => navigate(`/user/payment/progress?paymentId=${session.id}`)}>
-              결제 대기
-            </PrimaryButton>
           </div>
           <PaymentSummary
             amount={session.amount}
             merchant={session.merchantName}
+            floating={false}
             secondaryLabel="결제 취소"
             onSecondary={async () => {
               await cancelPaymentSession(session.id)
@@ -104,13 +103,6 @@ export function PaymentQrPage() {
               navigate('/user/shop')
             }}
           />
-          <Link
-            to="/terminal/scan"
-            target="_blank"
-            className="block rounded-[22px] border border-dashed border-blue-300 px-4 py-4 text-center text-sm font-bold text-blue-600"
-          >
-            새 탭에서 단말기 앱 열기
-          </Link>
         </div>
       </Content>
       <BottomNav />

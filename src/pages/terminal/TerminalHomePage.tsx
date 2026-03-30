@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom'
-import { AppFrame, Content, PageHeader, PrimaryButton, SectionCard } from '../../components/ui'
+import { AppFrame, Content, PrimaryButton, SectionCard } from '../../components/ui'
 
 export function TerminalHomePage() {
   const navigate = useNavigate()

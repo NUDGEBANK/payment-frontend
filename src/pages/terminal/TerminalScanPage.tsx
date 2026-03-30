@@ -20,7 +20,7 @@ export function TerminalScanPage() {
     if (paymentId) {
       try {
         const scanned = await scanPayment(paymentId)
-        navigate(`/terminal/decision?paymentId=${scanned.id}`)
+        navigate(`/terminal/decision?paymentId=${scanned.id}&payload=${encodeURIComponent(decodedText)}`)
         return
       } catch {
         navigate(`/terminal/decision?payload=${encodeURIComponent(decodedText)}`)
@@ -58,7 +58,7 @@ export function TerminalScanPage() {
             onClick={async () => {
               if (!payment) return
               const scanned = await scanPayment(payment.id)
-              navigate(`/terminal/decision?paymentId=${scanned.id}`)
+              navigate(`/terminal/decision?paymentId=${scanned.id}&payload=${encodeURIComponent(scanned.qrCode)}`)
             }}
           >
             QR 스캔 시뮬레이션

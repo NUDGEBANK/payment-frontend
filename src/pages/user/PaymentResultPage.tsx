@@ -73,7 +73,7 @@ export function PaymentResultPage() {
             </div>
           </SectionCard>
           <PrimaryButton className="w-full" onClick={() => navigate('/user/history')}>
-            상세 영수증 보기
+            결제 내역 보기
           </PrimaryButton>
         </div>
       </Content>

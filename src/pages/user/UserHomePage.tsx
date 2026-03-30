@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { useUserApp } from '../../app/providers/UserAppProvider'
-import { AppFrame, BottomNav, Content, PageHeader, PrimaryButton, SectionCard } from '../../components/ui'
+import { AppFrame, BottomNav, Content, PrimaryButton, SectionCard } from '../../components/ui'
 
 export function UserHomePage() {
   const navigate = useNavigate()

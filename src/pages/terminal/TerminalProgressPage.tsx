@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { formatCurrency } from '../../api/mockClient'
+import { formatCurrency, parsePaymentQrPayload } from '../../api/mockClient'
 import { approvePayment, completePayment, rejectPayment } from '../../api/terminalApi'
 import { fetchPaymentSession } from '../../api/userApi'
 import { AppFrame, Content, PageHeader, SectionCard } from '../../components/ui'
@@ -10,7 +10,7 @@ import { buildDemoSession } from './demoSession'
 export function TerminalProgressPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const paymentId = searchParams.get('paymentId') ?? ''
+  const paymentId = searchParams.get('paymentId') ?? parsePaymentQrPayload(searchParams.get('payload') ?? '') ?? ''
   const payload = searchParams.get('payload') ?? ''
   const action = searchParams.get('action') ?? 'approve'
   const [session, setSession] = useState<PaymentSession | null>(null)
@@ -38,6 +38,18 @@ export function TerminalProgressPage() {
 
       let updated = await fetchPaymentSession(paymentId)
       if (!updated) {
+        if (payload) {
+          const demoStatus = action === 'approve' ? 'APPROVED' : 'REJECTED'
+          const demo = buildDemoSession(payload, demoStatus)
+          setSession(demo)
+          window.setTimeout(() => {
+            navigate(`/terminal/result?payload=${encodeURIComponent(payload)}&action=${action}`, {
+              replace: true,
+            })
+          }, 1200)
+          return
+        }
+
         navigate('/terminal/scan', { replace: true })
         return
       }
@@ -56,7 +68,10 @@ export function TerminalProgressPage() {
       if (!cancelled) {
         setSession(updated)
         window.setTimeout(() => {
-          navigate(`/terminal/result?paymentId=${paymentId}`, { replace: true })
+          navigate(
+            `/terminal/result?paymentId=${paymentId}&payload=${encodeURIComponent(updated.qrCode)}&action=${action}`,
+            { replace: true },
+          )
         }, 1200)
       }
     }
@@ -69,7 +84,16 @@ export function TerminalProgressPage() {
   }, [action, navigate, paymentId, payload])
 
   if (!session) {
-    return null
+    return (
+      <AppFrame>
+        <PageHeader title="결제 진행" backTo="/terminal/scan" />
+        <Content>
+          <SectionCard className="text-center">
+            <p className="text-base font-semibold text-slate-500">결제 상태를 불러오는 중입니다.</p>
+          </SectionCard>
+        </Content>
+      </AppFrame>
+    )
   }
 
   const label = action === 'approve' ? '결제 승인 대기 중' : '결제 거절 처리 중'
