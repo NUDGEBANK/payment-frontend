@@ -62,6 +62,7 @@ export function PaymentSummary({
   primaryLabel,
   onSecondary,
   secondaryLabel,
+  floating = true,
 }: {
   amount: number
   merchant: string
@@ -69,9 +70,14 @@ export function PaymentSummary({
   primaryLabel?: string
   onSecondary?: () => void
   secondaryLabel?: string
+  floating?: boolean
 }) {
   return (
-    <div className="sticky bottom-0 mt-6 rounded-[26px] bg-[#e6f0f8] p-4 shadow-[0_-6px_20px_rgba(148,163,184,0.18)]">
+    <div
+      className={`mt-6 rounded-[26px] bg-[#e6f0f8] p-4 ${
+        floating ? 'sticky bottom-0 shadow-[0_-6px_20px_rgba(148,163,184,0.18)]' : 'shadow-[0_10px_30px_rgba(148,163,184,0.16)]'
+      }`}
+    >
       <div className="flex items-center justify-between gap-4">
         <div>
           <p className="text-sm font-bold text-slate-400">총 결제 금액</p>
