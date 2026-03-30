@@ -33,7 +33,7 @@ export function TerminalScanPage() {
 
   return (
     <AppFrame>
-      <PageHeader title="QR 스캐너" backTo="/" />
+      <PageHeader title="QR 스캐너" backTo="/terminal" />
       <Content>
         <div className="space-y-6">
           <ScannerPreview hasPayment={Boolean(payment)} onDetected={handleDetected} />

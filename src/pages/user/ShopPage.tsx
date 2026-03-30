@@ -69,7 +69,7 @@ export function ShopPage() {
 
   return (
     <AppFrame>
-      <PageHeader title="상품 선택" backTo="/user/card" />
+      <PageHeader title="상품 선택" backTo="/user" />
       <Content>
         <div className="space-y-5">
           <div className="flex gap-2 overflow-x-auto pb-1">

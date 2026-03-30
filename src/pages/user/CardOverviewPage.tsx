@@ -13,7 +13,7 @@ export function CardOverviewPage() {
 
   return (
     <AppFrame>
-      <PageHeader title="카드" backTo="/" />
+      <PageHeader title="카드" backTo="/user" />
       <Content>
         <div className="space-y-6">
           <div>

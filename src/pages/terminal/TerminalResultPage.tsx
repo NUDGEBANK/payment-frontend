@@ -80,7 +80,7 @@ export function TerminalResultPage() {
               </div>
             </div>
           </SectionCard>
-          <PrimaryButton className="w-full" onClick={() => navigate('/terminal/scan')}>
+          <PrimaryButton className="w-full" onClick={() => navigate('/terminal')}>
             다음 스캔하기
           </PrimaryButton>
         </div>
