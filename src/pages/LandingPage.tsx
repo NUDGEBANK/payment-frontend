@@ -28,7 +28,7 @@ export function LandingPage() {
             <SectionCard className="bg-[linear-gradient(135deg,_#eff6ff,_#e2e8f0)]">
               <p className="text-sm font-bold text-slate-500">결제 단말기용 웹앱</p>
               <h2 className="mt-2 text-3xl font-black tracking-[-0.04em] text-slate-800">QR 스캔, 승인/거절, 결과</h2>
-              <Link to="/terminal/scan">
+              <Link to="/terminal">
                 <PrimaryButton className="mt-6 w-full">단말기 앱 시작</PrimaryButton>
               </Link>
             </SectionCard>

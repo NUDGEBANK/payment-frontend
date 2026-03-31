@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { formatCurrency, formatDateTime } from '../../api/mockClient'
+import { formatCurrency, formatDateTime, parsePaymentQrPayload } from '../../api/mockClient'
 import { fetchPaymentSession } from '../../api/userApi'
 import { AppFrame, Content, PageHeader, PrimaryButton, SectionCard } from '../../components/ui'
 import type { PaymentSession } from '../../types/payment'
@@ -9,7 +9,7 @@ import { buildDemoSession } from './demoSession'
 export function TerminalResultPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const paymentId = searchParams.get('paymentId') ?? ''
+  const paymentId = searchParams.get('paymentId') ?? parsePaymentQrPayload(searchParams.get('payload') ?? '') ?? ''
   const payload = searchParams.get('payload') ?? ''
   const action = searchParams.get('action') ?? 'approve'
   const [session, setSession] = useState<PaymentSession | null>(null)
@@ -21,7 +21,19 @@ export function TerminalResultPage() {
     }
 
     if (paymentId) {
-      fetchPaymentSession(paymentId).then(setSession)
+      fetchPaymentSession(paymentId).then((data) => {
+        if (data) {
+          setSession(data)
+          return
+        }
+
+        if (payload) {
+          setSession(buildDemoSession(payload, action === 'approve' ? 'COMPLETED' : 'REJECTED'))
+          return
+        }
+
+        navigate('/terminal/scan', { replace: true })
+      })
       return
     }
 
@@ -29,7 +41,16 @@ export function TerminalResultPage() {
   }, [action, navigate, paymentId, payload])
 
   if (!session) {
-    return null
+    return (
+      <AppFrame>
+        <PageHeader title="결제 완료 내역" backTo="/terminal/scan" />
+        <Content>
+          <SectionCard className="text-center">
+            <p className="text-base font-semibold text-slate-500">결제 결과를 불러오는 중입니다.</p>
+          </SectionCard>
+        </Content>
+      </AppFrame>
+    )
   }
 
   const success = session.status === 'COMPLETED'
@@ -80,7 +101,7 @@ export function TerminalResultPage() {
               </div>
             </div>
           </SectionCard>
-          <PrimaryButton className="w-full" onClick={() => navigate('/terminal/scan')}>
+          <PrimaryButton className="w-full" onClick={() => navigate('/terminal')}>
             다음 스캔하기
           </PrimaryButton>
         </div>

@@ -53,9 +53,11 @@ export function buildPaymentQrPayload(paymentId: string) {
 }
 
 export function parsePaymentQrPayload(payload: string) {
-  if (!payload.startsWith('VPAY:')) {
+  const normalized = payload.trim()
+
+  if (!normalized.startsWith('VPAY:')) {
     return null
   }
 
-  return payload.slice('VPAY:'.length)
+  return normalized.slice('VPAY:'.length)
 }

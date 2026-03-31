@@ -62,7 +62,7 @@ export function CardRegisterPage() {
 
   return (
     <AppFrame>
-      <PageHeader title="카드 등록" backTo="/" />
+      <PageHeader title="카드 등록" backTo="/user" />
       <Content>
         <div className="space-y-6">
           <div>
@@ -94,6 +94,7 @@ export function CardRegisterPage() {
                   placeholder="••••"
                   value={form.password}
                   onChange={(event) => setForm((current) => ({ ...current, password: event.target.value }))}
+                  maxLength={4}
                 />
               </Field>
             </div>

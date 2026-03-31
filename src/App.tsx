@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { UserAppProvider } from './app/providers/UserAppProvider'
 import { LandingPage } from './pages/LandingPage'
+import { TerminalHomePage } from './pages/terminal/TerminalHomePage'
 import { TerminalDecisionPage } from './pages/terminal/TerminalDecisionPage'
 import { TerminalProgressPage } from './pages/terminal/TerminalProgressPage'
 import { TerminalResultPage } from './pages/terminal/TerminalResultPage'
@@ -27,11 +28,12 @@ function App() {
         <Route path="/user/payment/qr" element={<PaymentQrPage />} />
         <Route path="/user/payment/progress" element={<PaymentProgressPage />} />
         <Route path="/user/payment/result" element={<PaymentResultPage />} />
-        <Route path="/terminal" element={<Navigate to="/terminal/scan" replace />} />
+        <Route path="/terminal" element={<TerminalHomePage />} />
         <Route path="/terminal/scan" element={<TerminalScanPage />} />
         <Route path="/terminal/decision" element={<TerminalDecisionPage />} />
         <Route path="/terminal/progress" element={<TerminalProgressPage />} />
         <Route path="/terminal/result" element={<TerminalResultPage />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </UserAppProvider>
   )

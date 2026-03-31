@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { formatCurrency } from '../../api/mockClient'
+import { formatCurrency, parsePaymentQrPayload } from '../../api/mockClient'
 import { fetchPaymentSession } from '../../api/userApi'
 import { AppFrame, Content, PageHeader, PrimaryButton, SecondaryButton, SectionCard } from '../../components/ui'
 import type { PaymentSession } from '../../types/payment'
@@ -9,7 +9,7 @@ import { buildDemoSession } from './demoSession'
 export function TerminalDecisionPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const paymentId = searchParams.get('paymentId') ?? ''
+  const paymentId = searchParams.get('paymentId') ?? parsePaymentQrPayload(searchParams.get('payload') ?? '') ?? ''
   const payload = searchParams.get('payload') ?? ''
   const [session, setSession] = useState<PaymentSession | null>(null)
 
@@ -20,7 +20,19 @@ export function TerminalDecisionPage() {
     }
 
     if (paymentId) {
-      fetchPaymentSession(paymentId).then(setSession)
+      fetchPaymentSession(paymentId).then((data) => {
+        if (data) {
+          setSession(data)
+          return
+        }
+
+        if (payload) {
+          setSession(buildDemoSession(payload, 'SCANNED'))
+          return
+        }
+
+        navigate('/terminal/scan', { replace: true })
+      })
       return
     }
 
@@ -28,7 +40,16 @@ export function TerminalDecisionPage() {
   }, [navigate, paymentId, payload])
 
   if (!session) {
-    return null
+    return (
+      <AppFrame>
+        <PageHeader title="승인 요청 확인" backTo="/terminal/scan" />
+        <Content>
+          <SectionCard className="text-center">
+            <p className="text-base font-semibold text-slate-500">스캔한 결제 정보를 불러오는 중입니다.</p>
+          </SectionCard>
+        </Content>
+      </AppFrame>
+    )
   }
 
   return (
@@ -81,7 +102,7 @@ export function TerminalDecisionPage() {
             onClick={() =>
               navigate(
                 paymentId
-                  ? `/terminal/progress?paymentId=${session.id}&action=approve`
+                  ? `/terminal/progress?paymentId=${paymentId}&payload=${encodeURIComponent(payload || session.qrCode)}&action=approve`
                   : `/terminal/progress?payload=${encodeURIComponent(payload)}&action=approve`,
               )
             }
@@ -93,7 +114,7 @@ export function TerminalDecisionPage() {
             onClick={() =>
               navigate(
                 paymentId
-                  ? `/terminal/progress?paymentId=${session.id}&action=reject`
+                  ? `/terminal/progress?paymentId=${paymentId}&payload=${encodeURIComponent(payload || session.qrCode)}&action=reject`
                   : `/terminal/progress?payload=${encodeURIComponent(payload)}&action=reject`,
               )
             }

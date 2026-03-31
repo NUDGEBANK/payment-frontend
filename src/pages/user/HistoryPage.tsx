@@ -27,7 +27,7 @@ export function HistoryPage() {
 
   return (
     <AppFrame>
-      <PageHeader title="결제 내역" backTo="/user/card" />
+      <PageHeader title="결제 내역" backTo="/user" />
       <Content>
         <SectionCard className="bg-[linear-gradient(135deg,_#edf6ff,_#eff6ff)]">
           <p className="text-sm font-bold text-slate-500">이번 달 총 지출</p>
