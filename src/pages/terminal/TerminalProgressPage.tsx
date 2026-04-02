@@ -30,14 +30,31 @@ export function TerminalProgressPage() {
           setSession(current)
         }
 
-        const updated = action === 'approve'
-          ? await approvePayment(qrId)
-          : await rejectPayment(qrId)
+        let updated: PaymentSession
+
+        if (action === 'approve') {
+          try {
+            updated = await approvePayment(qrId)
+          } catch (caught) {
+            if (caught instanceof ApiError && caught.code === 'INSUFFICIENT_BALANCE') {
+              updated = await rejectPayment(qrId)
+              updated = {
+                ...updated,
+                message: '잔액 부족으로 결제가 거절되었습니다.',
+              }
+            } else {
+              throw caught
+            }
+          }
+        } else {
+          updated = await rejectPayment(qrId)
+        }
 
         if (!cancelled) {
           setSession(updated)
           window.setTimeout(() => {
-            navigate(`/terminal/result?qrId=${updated.qrId}`, { replace: true })
+            const reason = updated.message ? `&reason=${encodeURIComponent(updated.message)}` : ''
+            navigate(`/terminal/result?qrId=${updated.qrId}${reason}`, { replace: true })
           }, 1200)
         }
       } catch (caught) {

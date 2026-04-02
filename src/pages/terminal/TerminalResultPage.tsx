@@ -9,6 +9,7 @@ export function TerminalResultPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const qrId = searchParams.get('qrId') ?? ''
+  const reason = searchParams.get('reason') ?? ''
   const [session, setSession] = useState<PaymentSession | null>(null)
 
   useEffect(() => {
@@ -34,6 +35,7 @@ export function TerminalResultPage() {
   }
 
   const success = session.status === 'APPROVED'
+  const description = reason || session.message || (success ? '결제가 승인되었습니다.' : '결제가 거절되었습니다.')
 
   return (
     <AppFrame>
@@ -49,9 +51,7 @@ export function TerminalResultPage() {
             <h2 className="mt-6 text-5xl font-black tracking-[-0.05em] text-slate-800">
               {success ? '결제 승인 완료' : '결제 거절 완료'}
             </h2>
-            <p className="mt-3 text-base font-semibold text-slate-400">
-              {session.message ?? (success ? '결제가 승인되었습니다.' : '결제가 거절되었습니다.')}
-            </p>
+            <p className="mt-3 text-base font-semibold text-slate-400">{description}</p>
           </SectionCard>
           <SectionCard>
             <p className="text-sm font-black tracking-[0.18em] text-blue-600">TRANSACTION RECEIPT</p>
