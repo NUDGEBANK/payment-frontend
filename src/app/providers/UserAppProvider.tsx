@@ -1,5 +1,6 @@
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
@@ -16,6 +17,7 @@ interface UserAppContextValue {
   setPendingCart: (items: CartItem[]) => void
   activePayment: PaymentSession | null
   setActivePayment: (payment: PaymentSession | null) => void
+  refreshCard: () => Promise<RegisteredCard | null>
   loading: boolean
 }
 
@@ -27,11 +29,16 @@ export function UserAppProvider({ children }: { children: ReactNode }) {
   const [activePayment, setActivePayment] = useState<PaymentSession | null>(null)
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    fetchRegisteredCard()
-      .then(setCard)
-      .finally(() => setLoading(false))
+  const refreshCard = useCallback(async () => {
+    const nextCard = await fetchRegisteredCard()
+    setCard(nextCard)
+    return nextCard
   }, [])
+
+  useEffect(() => {
+    refreshCard()
+      .finally(() => setLoading(false))
+  }, [refreshCard])
 
   const value = useMemo(
     () => ({
@@ -41,9 +48,10 @@ export function UserAppProvider({ children }: { children: ReactNode }) {
       setPendingCart,
       activePayment,
       setActivePayment,
+      refreshCard,
       loading,
     }),
-    [activePayment, card, loading, pendingCart],
+    [activePayment, card, loading, pendingCart, refreshCard],
   )
 
   return <UserAppContext.Provider value={value}>{children}</UserAppContext.Provider>

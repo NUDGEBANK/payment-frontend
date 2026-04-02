@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { clearRegisteredCard } from '../../api/userApi'
 import { useUserApp } from '../../app/providers/UserAppProvider'
@@ -6,7 +7,11 @@ import { AppFrame, BottomNav, Content, PageHeader, PrimaryButton, SecondaryButto
 
 export function CardOverviewPage() {
   const navigate = useNavigate()
-  const { card, setCard } = useUserApp()
+  const { card, setCard, refreshCard } = useUserApp()
+
+  useEffect(() => {
+    void refreshCard()
+  }, [refreshCard])
 
   if (!card) {
     return <Navigate to="/user/register" replace />

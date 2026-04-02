@@ -136,7 +136,7 @@ export function ShopPage() {
           <PaymentSummary
             amount={totalAmount}
             merchant={currentMarket?.marketName ?? '가맹점을 선택하세요'}
-            primaryLabel="QR 생성"
+            primaryLabel="구매하기"
             onPrimary={handleBuy}
           />
         </div>
