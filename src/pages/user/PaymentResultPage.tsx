@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { formatCurrency, formatDateTime } from '../../api/mockClient'
-import { fetchPaymentSession, fetchRegisteredCard } from '../../api/userApi'
+import { fetchPaymentSession } from '../../api/userApi'
+import { useUserApp } from '../../app/providers/UserAppProvider'
 import { AppFrame, BottomNav, Content, PageHeader, PrimaryButton, SectionCard } from '../../components/ui'
 import type { PaymentSession, RegisteredCard } from '../../types/payment'
 
@@ -9,6 +10,7 @@ export function PaymentResultPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const qrId = searchParams.get('qrId') ?? ''
+  const { refreshCard } = useUserApp()
   const [session, setSession] = useState<PaymentSession | null>(null)
   const [card, setCard] = useState<RegisteredCard | null>(null)
 
@@ -19,8 +21,8 @@ export function PaymentResultPage() {
     }
 
     fetchPaymentSession(qrId).then(setSession)
-    fetchRegisteredCard().then(setCard)
-  }, [navigate, qrId])
+    refreshCard().then(setCard)
+  }, [navigate, qrId, refreshCard])
 
   if (!session) {
     return null
