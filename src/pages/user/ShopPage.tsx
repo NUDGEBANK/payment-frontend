@@ -1,70 +1,86 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Navigate, useNavigate } from 'react-router-dom'
+import { ApiError } from '../../api/client'
 import { createPaymentSession, fetchCatalog } from '../../api/userApi'
 import { useUserApp } from '../../app/providers/UserAppProvider'
 import { PaymentSummary, ProductCard } from '../../components/payment'
 import { AppFrame, BottomNav, Content, PageHeader, PillButton } from '../../components/ui'
-import type { CartItem, CategoryGroup, Merchant } from '../../types/payment'
+import type { Category, Market, MenuItem } from '../../types/payment'
 
 export function ShopPage() {
   const navigate = useNavigate()
-  const { setPendingCart, setActivePayment } = useUserApp()
-  const [categories, setCategories] = useState<CategoryGroup[]>([])
-  const [merchants, setMerchants] = useState<Merchant[]>([])
-  const [major, setMajor] = useState('FOOD')
-  const [subCategory, setSubCategory] = useState('한식')
-  const [merchantId, setMerchantId] = useState('')
-  const [cartMap, setCartMap] = useState<Record<string, number>>({})
+  const { card, setActivePayment } = useUserApp()
+  const [categories, setCategories] = useState<Category[]>([])
+  const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null)
+  const [selectedMarketId, setSelectedMarketId] = useState<number | null>(null)
+  const [selectedMenuId, setSelectedMenuId] = useState<number | null>(null)
+  const [quantity, setQuantity] = useState(0)
+  const [error, setError] = useState('')
 
   useEffect(() => {
     fetchCatalog().then((data) => {
       setCategories(data.categories)
-      setMerchants(data.merchants)
-      const firstCategory = data.categories[0]
-      setMajor(firstCategory.major)
-      setSubCategory(firstCategory.subCategories[0])
+      setSelectedCategoryId(data.categories[0]?.categoryId ?? null)
     })
   }, [])
 
-  const currentCategory = categories.find((item) => item.major === major)
-  const subMerchants = useMemo(
-    () => merchants.filter((item) => item.majorCategory === major && item.subCategory === subCategory),
-    [major, merchants, subCategory],
+  const currentCategory = useMemo(
+    () => categories.find((category) => category.categoryId === selectedCategoryId) ?? null,
+    [categories, selectedCategoryId],
+  )
+  const markets = currentCategory?.markets ?? []
+  const currentMarket = useMemo(
+    () => markets.find((market) => market.marketId === selectedMarketId) ?? markets[0] ?? null,
+    [markets, selectedMarketId],
+  )
+  const currentMenu = useMemo(
+    () => currentMarket?.menus.find((menu) => menu.menuId === selectedMenuId) ?? null,
+    [currentMarket, selectedMenuId],
   )
 
   useEffect(() => {
-    if (currentCategory && !currentCategory.subCategories.includes(subCategory)) {
-      setSubCategory(currentCategory.subCategories[0])
-    }
-  }, [currentCategory, subCategory])
+    setSelectedMarketId(markets[0]?.marketId ?? null)
+  }, [selectedCategoryId, markets])
 
   useEffect(() => {
-    if (subMerchants.length > 0) {
-      setMerchantId(subMerchants[0].id)
-    }
-  }, [subMerchants])
+    setSelectedMenuId(currentMarket?.menus[0]?.menuId ?? null)
+    setQuantity(0)
+  }, [currentMarket])
 
-  const selectedMerchant = subMerchants.find((item) => item.id === merchantId) ?? subMerchants[0]
-  const totalAmount = selectedMerchant
-    ? selectedMerchant.products.reduce(
-        (sum, product) => sum + (cartMap[product.id] ?? 0) * product.price,
-        0,
-      )
-    : 0
+  if (!card) {
+    return <Navigate to="/user/register" replace />
+  }
+
+  const handleMenuChange = (menu: MenuItem, nextQuantity: number) => {
+    setSelectedMenuId(menu.menuId)
+    setQuantity(nextQuantity)
+  }
+
+  const totalAmount = currentMenu ? currentMenu.price * quantity : 0
 
   const handleBuy = async () => {
-    if (!selectedMerchant || totalAmount <= 0) {
+    if (!card || !currentMarket || !currentMenu || quantity <= 0) {
       return
     }
 
-    const cart: CartItem[] = Object.entries(cartMap)
-      .filter(([, quantity]) => quantity > 0)
-      .map(([productId, quantity]) => ({ productId, quantity }))
-
-    const session = await createPaymentSession({ merchantId: selectedMerchant.id, cart })
-    setPendingCart(cart)
-    setActivePayment(session)
-    navigate(`/user/payment/qr?paymentId=${session.id}`)
+    try {
+      setError('')
+      const session = await createPaymentSession({
+        cardId: card.cardId,
+        marketId: currentMarket.marketId,
+        menuName: currentMenu.menuName,
+        quantity,
+        paymentAmount: totalAmount,
+      })
+      setActivePayment(session)
+      navigate(`/user/payment/qr?qrId=${session.qrId}`)
+    } catch (caught) {
+      if (caught instanceof ApiError) {
+        setError(caught.code)
+      } else {
+        setError('결제 요청 생성에 실패했습니다.')
+      }
+    }
   }
 
   return (
@@ -73,47 +89,54 @@ export function ShopPage() {
       <Content>
         <div className="space-y-5">
           <div className="flex gap-2 overflow-x-auto pb-1">
-            {categories.map((item) => (
+            {categories.map((category) => (
               <PillButton
-                key={item.major}
-                active={item.major === major}
+                key={category.categoryId}
+                active={category.categoryId === selectedCategoryId}
+                onClick={() => setSelectedCategoryId(category.categoryId)}
+              >
+                {category.categoryName}
+              </PillButton>
+            ))}
+          </div>
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            {markets.map((market: Market) => (
+              <PillButton
+                key={market.marketId}
+                active={market.marketId === currentMarket?.marketId}
                 onClick={() => {
-                  setMajor(item.major)
-                  setSubCategory(item.subCategories[0])
+                  setSelectedMarketId(market.marketId)
+                  setQuantity(0)
                 }}
               >
-                {item.label}
-              </PillButton>
-            ))}
-          </div>
-          <div className="flex gap-2 overflow-x-auto pb-1">
-            {currentCategory?.subCategories.map((item) => (
-              <PillButton key={item} active={item === subCategory} onClick={() => setSubCategory(item)}>
-                {item}
-              </PillButton>
-            ))}
-          </div>
-          <div className="flex gap-2 overflow-x-auto pb-1">
-            {subMerchants.map((item) => (
-              <PillButton key={item.id} active={item.id === merchantId} onClick={() => setMerchantId(item.id)}>
-                {item.name}
+                {market.marketName}
               </PillButton>
             ))}
           </div>
           <div className="grid grid-cols-2 gap-4">
-            {selectedMerchant?.products.map((product) => (
+            {currentMarket?.menus.map((menu) => (
               <ProductCard
-                key={product.id}
-                product={product}
-                quantity={cartMap[product.id] ?? 0}
-                onChange={(next) => setCartMap((current) => ({ ...current, [product.id]: next }))}
+                key={menu.menuId}
+                product={{
+                  id: String(menu.menuId),
+                  name: menu.menuName,
+                  price: menu.price,
+                  image: '',
+                }}
+                quantity={selectedMenuId === menu.menuId ? quantity : 0}
+                onChange={(next) => handleMenuChange(menu, next)}
               />
             ))}
           </div>
+          {error ? (
+            <p className="rounded-2xl bg-rose-50 px-4 py-3 text-sm font-bold text-rose-600">
+              {error}
+            </p>
+          ) : null}
           <PaymentSummary
             amount={totalAmount}
-            merchant={selectedMerchant?.name ?? '가맹점을 선택하세요'}
-            primaryLabel="구매하기"
+            merchant={currentMarket?.marketName ?? '가맹점을 선택하세요'}
+            primaryLabel="QR 생성"
             onPrimary={handleBuy}
           />
         </div>
