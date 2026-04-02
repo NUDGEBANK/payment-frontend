@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { cancelPaymentSession, fetchPaymentSession, refreshPaymentQr } from '../../api/userApi'
+import { ApiError } from '../../api/client'
 import { formatCurrency } from '../../api/mockClient'
+import { cancelPaymentSession, expirePaymentSession, fetchPaymentSession } from '../../api/userApi'
 import { useUserApp } from '../../app/providers/UserAppProvider'
 import { PaymentSummary, QrPlaceholder } from '../../components/payment'
-import { AppFrame, BottomNav, Content, PageHeader, PrimaryButton, SecondaryButton, SectionCard } from '../../components/ui'
+import { AppFrame, BottomNav, Content, PageHeader, PrimaryButton, SectionCard } from '../../components/ui'
 import type { PaymentSession } from '../../types/payment'
 
 function getRemaining(expiresAt: string) {
@@ -18,38 +19,67 @@ function getRemaining(expiresAt: string) {
 export function PaymentQrPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const paymentId = searchParams.get('paymentId')
+  const qrId = searchParams.get('qrId')
   const { activePayment, setActivePayment } = useUserApp()
   const [session, setSession] = useState<PaymentSession | null>(activePayment)
   const [remaining, setRemaining] = useState('')
+  const [error, setError] = useState('')
 
   useEffect(() => {
-    if (!paymentId) {
+    if (!qrId) {
       return
     }
-    fetchPaymentSession(paymentId).then((data) => {
-      setSession(data)
-      setActivePayment(data)
-    })
-  }, [paymentId, setActivePayment])
+
+    const sync = async () => {
+      try {
+        const data = await fetchPaymentSession(qrId)
+        setSession(data)
+        setActivePayment(data)
+
+        if (data.status !== 'CREATED') {
+          navigate(`/user/payment/progress?qrId=${data.qrId}`, { replace: true })
+        }
+      } catch (caught) {
+        if (caught instanceof ApiError) {
+          setError(caught.code)
+        } else {
+          setError('결제 정보를 불러오지 못했습니다.')
+        }
+      }
+    }
+
+    sync()
+    const timer = window.setInterval(sync, 1500)
+    return () => window.clearInterval(timer)
+  }, [navigate, qrId, setActivePayment])
 
   useEffect(() => {
     if (!session) {
       return
     }
 
-    const tick = () => setRemaining(getRemaining(session.expiresAt))
+    const tick = async () => {
+      const next = getRemaining(session.expiresAt)
+      setRemaining(next)
+
+      if (next === '00:00' && session.status === 'CREATED') {
+        const expired = await expirePaymentSession(session.qrId)
+        setSession(expired)
+        setActivePayment(expired)
+        navigate(`/user/payment/result?qrId=${expired.qrId}`, { replace: true })
+      }
+    }
+
     tick()
     const timer = window.setInterval(tick, 1000)
     return () => window.clearInterval(timer)
-  }, [session])
+  }, [navigate, session, setActivePayment])
 
   const itemLabel = useMemo(() => {
-    if (!session || session.lines.length === 0) {
-      return '선택한 상품이 없습니다.'
+    if (!session) {
+      return ''
     }
-    const [first, ...rest] = session.lines
-    return `${first.name}${rest.length > 0 ? ` 외 ${rest.length}건` : ''}`
+    return `${session.menuName} ${session.quantity}개`
   }, [session])
 
   if (!session) {
@@ -71,36 +101,28 @@ export function PaymentQrPage() {
         <div className="space-y-6">
           <SectionCard className="text-center">
             <p className="text-sm font-bold text-slate-400">결제 금액</p>
-            <p className="mt-2 text-5xl font-black tracking-[-0.06em] text-slate-800">{formatCurrency(session.amount)}</p>
+            <p className="mt-2 text-5xl font-black tracking-[-0.06em] text-slate-800">{formatCurrency(session.paymentAmount)}</p>
             <p className="text-base font-semibold text-slate-400">{itemLabel}</p>
           </SectionCard>
-          <QrPlaceholder code={session.qrCode} />
+          <QrPlaceholder code={session.qrId} />
           <div className="space-y-2 text-center">
-            <p className="text-3xl font-black tracking-[-0.05em] text-slate-800">결제용 QR 코드가 생성되었습니다.</p>
+            <p className="text-3xl font-black tracking-[-0.05em] text-slate-800">단말에서 QR을 스캔하세요</p>
             <p className="text-base font-bold text-slate-500">남은 시간 {remaining}</p>
           </div>
-          <div className="flex justify-center">
-            <SecondaryButton
-              className="min-w-40"
-              onClick={async () => {
-                if (!paymentId) return
-                const refreshed = await refreshPaymentQr(paymentId)
-                setSession(refreshed)
-                setActivePayment(refreshed)
-              }}
-            >
-              시간 연장
-            </SecondaryButton>
-          </div>
+          {error ? (
+            <p className="rounded-2xl bg-rose-50 px-4 py-3 text-sm font-bold text-rose-600">
+              {error}
+            </p>
+          ) : null}
           <PaymentSummary
-            amount={session.amount}
-            merchant={session.merchantName}
+            amount={session.paymentAmount}
+            merchant={session.marketName}
             floating={false}
             secondaryLabel="결제 취소"
             onSecondary={async () => {
-              await cancelPaymentSession(session.id)
-              setActivePayment(null)
-              navigate('/user/shop')
+              const canceled = await cancelPaymentSession(session.qrId)
+              setActivePayment(canceled)
+              navigate(`/user/payment/result?qrId=${canceled.qrId}`, { replace: true })
             }}
           />
         </div>

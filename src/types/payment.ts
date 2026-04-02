@@ -1,83 +1,115 @@
 export type PaymentStatus =
-  | 'WAITING'
+  | 'CREATED'
   | 'SCANNED'
   | 'APPROVED'
   | 'REJECTED'
-  | 'COMPLETED'
-  | 'CANCELLED'
+  | 'CANCELED'
+  | 'EXPIRED'
 
-export type DateFilterPreset = '1M' | '3M' | '6M' | '1Y' | 'CUSTOM'
+export type DateFilterPreset =
+  | 'ONE_MONTH'
+  | 'THREE_MONTHS'
+  | 'SIX_MONTHS'
+  | 'ONE_YEAR'
+  | 'CUSTOM'
 
 export interface RegisteredCard {
-  id: string
+  cardId: number
   alias: string
   numberMasked: string
-  exp: string
-  passwordHint: string
+  expiredYm: string
   balance: number
 }
 
-export interface TransactionItem {
-  id: string
-  merchant: string
-  category: string
-  amount: number
-  type: 'PAYMENT' | 'CHARGE'
-  approvedAt: string
-}
-
-export interface Product {
-  id: string
-  name: string
+export interface MenuItem {
+  menuId: number
+  menuName: string
   price: number
-  image: string
 }
 
-export interface Merchant {
-  id: string
-  name: string
-  majorCategory: string
-  subCategory: string
-  products: Product[]
+export interface Market {
+  marketId: number
+  marketName: string
+  menus: MenuItem[]
 }
 
-export interface CategoryGroup {
-  major: string
-  label: string
-  subCategories: string[]
+export interface Category {
+  categoryId: number
+  categoryName: string
+  mcc: string
+  markets: Market[]
+}
+
+export interface CatalogResponse {
+  categories: Category[]
 }
 
 export interface CartItem {
-  productId: string
+  menuId: number
   quantity: number
 }
 
-export interface OrderLine {
-  productId: string
-  name: string
+export interface PaymentLine {
+  menuName: string
   quantity: number
   unitPrice: number
 }
 
 export interface PaymentSession {
-  id: string
-  merchantId: string
-  merchantName: string
+  qrId: string
+  cardId: number
+  marketId: number
+  marketName: string
+  paymentAmount: number
+  requestedAt: string
   status: PaymentStatus
-  amount: number
-  createdAt: string
-  approvedAt?: string
-  lines: OrderLine[]
-  qrCode: string
+  menuName: string
+  quantity: number
+  lines: PaymentLine[]
   expiresAt: string
-  approvalCode?: string
-  cardLast4?: string
+  changedAt?: string
+  message?: string
 }
 
-export interface MockDatabase {
-  card: RegisteredCard | null
+export interface CardHistorySummary {
+  cardId: number
+  currentBalance: number
+  currentMonthSpending: number
+  previousMonthSpending: number
+  changeRatePercent: number | null
+}
+
+export interface TransactionItem {
+  transactionId: number
+  qrId: string
+  marketId: number
+  marketName: string
+  categoryId: number
+  categoryName: string
+  amount: number
+  transactionDatetime: string
+  menuName: string
+  quantity: number
+}
+
+export interface TransactionsResponse {
+  cardId: number
+  periodType: DateFilterPreset
+  startDate?: string
+  endDate?: string
+  count: number
   transactions: TransactionItem[]
-  merchants: Merchant[]
-  categories: CategoryGroup[]
-  paymentSessions: PaymentSession[]
+}
+
+export interface ApiErrorField {
+  field: string
+  reason: string
+}
+
+export interface ApiErrorResponse {
+  code: string
+  message: string
+  status: number
+  timestamp: string
+  fieldErrors?: ApiErrorField[]
 }

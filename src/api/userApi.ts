@@ -1,23 +1,109 @@
-import { merchants } from '../mock/data'
+import { apiRequest } from './client'
+import { getPaymentExpiresAt, maskCardNumber } from './mockClient'
 import type {
-  CartItem,
+  CardHistorySummary,
+  CatalogResponse,
   DateFilterPreset,
-  OrderLine,
   PaymentSession,
   RegisteredCard,
-  TransactionItem,
+  TransactionsResponse,
 } from '../types/payment'
-import {
-  buildPaymentQrPayload,
-  formatCurrency,
-  generateId,
-  readDatabase,
-  updateDatabase,
-} from './mockClient'
+
+const CARD_STORAGE_KEY = 'payment-frontend-card'
+
+interface StoredCard {
+  cardId: number
+  alias: string
+  numberMasked: string
+  expiredYm: string
+}
+
+interface VerifyCardResponse {
+  cardId: number
+  verified: boolean
+  message: string
+}
+
+interface CardBalanceResponse {
+  cardId: number
+  accountId: number
+  balance: number
+}
+
+interface CreatePaymentResponse {
+  qrId: string
+  status: PaymentSession['status']
+}
+
+interface PaymentDetailResponse {
+  qrId: string
+  cardId: number
+  marketId: number
+  marketName: string
+  paymentAmount: number
+  requestedAt: string
+  status: PaymentSession['status']
+  menuName: string
+  quantity: number
+}
+
+interface PaymentActionResponse {
+  qrId: string
+  status: PaymentSession['status']
+  changedAt: string
+  message: string
+}
+
+function readStoredCard(): StoredCard | null {
+  const raw = localStorage.getItem(CARD_STORAGE_KEY)
+  if (!raw) {
+    return null
+  }
+
+  return JSON.parse(raw) as StoredCard
+}
+
+function writeStoredCard(card: StoredCard | null) {
+  if (!card) {
+    localStorage.removeItem(CARD_STORAGE_KEY)
+    return
+  }
+
+  localStorage.setItem(CARD_STORAGE_KEY, JSON.stringify(card))
+}
+
+function toPaymentSession(
+  detail: PaymentDetailResponse,
+  action?: PaymentActionResponse,
+): PaymentSession {
+  const unitPrice = detail.quantity > 0 ? detail.paymentAmount / detail.quantity : detail.paymentAmount
+
+  return {
+    ...detail,
+    lines: [
+      {
+        menuName: detail.menuName,
+        quantity: detail.quantity,
+        unitPrice,
+      },
+    ],
+    expiresAt: getPaymentExpiresAt(detail.requestedAt),
+    changedAt: action?.changedAt,
+    message: action?.message,
+  }
+}
 
 export async function fetchRegisteredCard() {
-  const db = await readDatabase()
-  return db.card
+  const stored = readStoredCard()
+  if (!stored) {
+    return null
+  }
+
+  const balance = await fetchCardBalance(stored.cardId)
+  return {
+    ...stored,
+    balance: balance.balance,
+  } satisfies RegisteredCard
 }
 
 export async function registerCard(input: {
@@ -26,166 +112,112 @@ export async function registerCard(input: {
   exp: string
   password: string
 }) {
-  const numberMasked = `•••• •••• •••• ${input.cardNumber.slice(-4)}`
-  const card: RegisteredCard = {
-    id: generateId('card'),
+  const expiredYm = input.exp
+  const response = await apiRequest<VerifyCardResponse>('/api/card/verify', {
+    method: 'POST',
+    body: JSON.stringify({
+      cardNumber: input.cardNumber.replace(/\s/g, '-'),
+      expiredYm,
+      password: input.password,
+    }),
+  })
+
+  const storedCard: StoredCard = {
+    cardId: response.cardId,
     alias: input.alias,
-    numberMasked,
-    exp: input.exp,
-    passwordHint: '*'.repeat(input.password.length),
-    balance: 1500000,
+    numberMasked: maskCardNumber(input.cardNumber),
+    expiredYm,
   }
 
-  await updateDatabase((db) => ({ ...db, card }))
-  return card
+  writeStoredCard(storedCard)
+
+  const balance = await fetchCardBalance(response.cardId)
+  return {
+    ...storedCard,
+    balance: balance.balance,
+  } satisfies RegisteredCard
+}
+
+export async function clearRegisteredCard() {
+  writeStoredCard(null)
+}
+
+export async function fetchCardBalance(cardId: number) {
+  return apiRequest<CardBalanceResponse>(`/api/card/${cardId}/balance`)
 }
 
 export async function fetchCatalog() {
-  const db = await readDatabase()
-  return { categories: db.categories, merchants: db.merchants }
+  return apiRequest<CatalogResponse>('/api/products/categories-markets-menus')
 }
 
-export async function fetchTransactions(filter: {
+export async function fetchHistorySummary(cardId: number) {
+  return apiRequest<CardHistorySummary>(`/api/cards/${cardId}/history/summary`)
+}
+
+export async function fetchTransactions(input: {
+  cardId: number
   preset: DateFilterPreset
   customStart?: string
   customEnd?: string
 }) {
-  const db = await readDatabase()
-  const endDate = filter.preset === 'CUSTOM' && filter.customEnd
-    ? new Date(filter.customEnd)
-    : new Date()
-  const startDate = new Date(endDate)
-
-  if (filter.preset === '1M') startDate.setMonth(startDate.getMonth() - 1)
-  if (filter.preset === '3M') startDate.setMonth(startDate.getMonth() - 3)
-  if (filter.preset === '6M') startDate.setMonth(startDate.getMonth() - 6)
-  if (filter.preset === '1Y') startDate.setFullYear(startDate.getFullYear() - 1)
-  if (filter.preset === 'CUSTOM' && filter.customStart) {
-    startDate.setTime(new Date(filter.customStart).getTime())
+  const query = new URLSearchParams({ periodType: input.preset })
+  if (input.preset === 'CUSTOM') {
+    if (input.customStart) {
+      query.set('startDate', input.customStart)
+    }
+    if (input.customEnd) {
+      query.set('endDate', input.customEnd)
+    }
   }
 
-  return db.transactions.filter((item) => {
-    const approvedAt = new Date(item.approvedAt)
-    return approvedAt >= startDate && approvedAt <= endDate
-  })
+  return apiRequest<TransactionsResponse>(
+    `/api/cards/${input.cardId}/history/transactions?${query.toString()}`,
+  )
 }
 
 export async function createPaymentSession(input: {
-  merchantId: string
-  cart: CartItem[]
+  cardId: number
+  marketId: number
+  menuName: string
+  quantity: number
+  paymentAmount: number
 }) {
-  const merchant = merchants.find((item) => item.id === input.merchantId)
-  if (!merchant) {
-    throw new Error('가맹점 정보를 찾을 수 없습니다.')
-  }
+  const created = await apiRequest<CreatePaymentResponse>('/api/payments/qr', {
+    method: 'POST',
+    body: JSON.stringify({
+      ...input,
+      requestedAt: new Date().toISOString(),
+    }),
+  })
 
-  const lines: OrderLine[] = input.cart
-    .map((cartItem) => {
-      const product = merchant.products.find((item) => item.id === cartItem.productId)
-      if (!product || cartItem.quantity <= 0) {
-        return null
-      }
-
-      return {
-        productId: product.id,
-        name: product.name,
-        quantity: cartItem.quantity,
-        unitPrice: product.price,
-      }
-    })
-    .filter((item): item is OrderLine => Boolean(item))
-
-  const amount = lines.reduce(
-    (total, item) => total + item.quantity * item.unitPrice,
-    0,
-  )
-  const paymentId = generateId('pay')
-
-  const session: PaymentSession = {
-    id: paymentId,
-    merchantId: merchant.id,
-    merchantName: merchant.name,
-    status: 'WAITING',
-    amount,
-    createdAt: new Date().toISOString(),
-    lines,
-    qrCode: buildPaymentQrPayload(paymentId),
-    expiresAt: new Date(Date.now() + 3 * 60 * 1000).toISOString(),
-  }
-
-  await updateDatabase((current) => ({
-    ...current,
-    paymentSessions: [
-      ...current.paymentSessions.filter((item) =>
-        !['WAITING', 'SCANNED', 'APPROVED'].includes(item.status),
-      ),
-      session,
-    ],
-  }))
-
-  return session
+  return fetchPaymentSession(created.qrId)
 }
 
-export async function fetchPaymentSession(paymentId: string) {
-  const db = await readDatabase()
-  return db.paymentSessions.find((item) => item.id === paymentId) ?? null
+export async function fetchPaymentSession(qrId: string) {
+  const detail = await apiRequest<PaymentDetailResponse>(`/api/payments/qr/${qrId}`)
+  return toPaymentSession(detail)
 }
 
-export async function refreshPaymentQr(paymentId: string) {
-  const db = await readDatabase()
-  const session = db.paymentSessions.find((item) => item.id === paymentId)
-  if (!session) {
-    throw new Error('결제 세션이 없습니다.')
-  }
-
-  const updated = {
-    ...session,
-    qrCode: buildPaymentQrPayload(paymentId),
-    expiresAt: new Date(Date.now() + 3 * 60 * 1000).toISOString(),
-  }
-
-  await updateDatabase((current) => ({
-    ...current,
-    paymentSessions: current.paymentSessions.map((item) =>
-      item.id === paymentId ? updated : item,
-    ),
-  }))
-
-  return updated
-}
-
-export async function cancelPaymentSession(paymentId: string) {
-  await updateDatabase((current) => ({
-    ...current,
-    paymentSessions: current.paymentSessions.map((item) =>
-      item.id === paymentId ? { ...item, status: 'CANCELLED' } : item,
-    ),
-  }))
-}
-
-export async function createTransactionFromPayment(session: PaymentSession) {
-  const card = await fetchRegisteredCard()
-  if (!card) {
-    return null
-  }
-
-  const transaction: TransactionItem = {
-    id: generateId('tx'),
-    merchant: session.merchantName,
-    category: '결제',
-    amount: -session.amount,
-    type: 'PAYMENT',
-    approvedAt: session.approvedAt ?? new Date().toISOString(),
-  }
-
-  await updateDatabase((current) => ({
-    ...current,
-    card: { ...card, balance: card.balance - session.amount },
-    transactions: [transaction, ...current.transactions],
-  }))
-
+async function runPaymentAction(
+  qrId: string,
+  action: 'cancel' | 'expire',
+) {
+  const actionResponse = await apiRequest<PaymentActionResponse>(`/api/payments/qr/${qrId}/${action}`, {
+    method: 'POST',
+  })
+  const detail = await fetchPaymentSession(qrId)
   return {
-    transaction,
-    balanceLabel: formatCurrency(card.balance - session.amount),
-  }
+    ...detail,
+    status: actionResponse.status,
+    changedAt: actionResponse.changedAt,
+    message: actionResponse.message,
+  } satisfies PaymentSession
+}
+
+export async function cancelPaymentSession(qrId: string) {
+  return runPaymentAction(qrId, 'cancel')
+}
+
+export async function expirePaymentSession(qrId: string) {
+  return runPaymentAction(qrId, 'expire')
 }

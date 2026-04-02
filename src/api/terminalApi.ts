@@ -1,97 +1,54 @@
-import { createTransactionFromPayment } from './userApi'
-import { generateId, readDatabase, updateDatabase } from './mockClient'
+import { apiRequest } from './client'
+import { fetchPaymentSession } from './userApi'
+import type { PaymentSession } from '../types/payment'
 
-export async function fetchPendingTerminalPayment() {
-  const db = await readDatabase()
-  return (
-    db.paymentSessions.find((item) =>
-      ['WAITING', 'SCANNED', 'APPROVED'].includes(item.status),
-    ) ?? null
+interface PaymentActionResponse {
+  qrId: string
+  status: PaymentSession['status']
+  changedAt: string
+  message: string
+}
+
+async function runDetailAction(
+  qrId: string,
+  action: 'scan' | 'approve' | 'reject',
+) {
+  const detail = await apiRequest<Omit<PaymentSession, 'lines' | 'expiresAt'>>(
+    `/api/payments/qr/${qrId}/${action}`,
+    { method: 'POST' },
   )
+
+  const session = await fetchPaymentSession(detail.qrId)
+  return {
+    ...session,
+    status: detail.status,
+  } satisfies PaymentSession
 }
 
-export async function scanPayment(paymentId: string) {
-  const db = await readDatabase()
-  const target = db.paymentSessions.find((item) => item.id === paymentId)
-  if (!target) {
-    throw new Error('스캔할 결제가 없습니다.')
-  }
-
-  const updated = { ...target, status: 'SCANNED' as const }
-  await updateDatabase((current) => ({
-    ...current,
-    paymentSessions: current.paymentSessions.map((item) =>
-      item.id === paymentId ? updated : item,
-    ),
-  }))
-
-  return updated
+async function runStatusAction(
+  qrId: string,
+  action: 'approve' | 'reject' | 'cancel' | 'expire',
+) {
+  const result = await apiRequest<PaymentActionResponse>(`/api/payments/qr/${qrId}/${action}`, {
+    method: 'POST',
+  })
+  const session = await fetchPaymentSession(result.qrId)
+  return {
+    ...session,
+    status: result.status,
+    changedAt: result.changedAt,
+    message: result.message,
+  } satisfies PaymentSession
 }
 
-export async function approvePayment(paymentId: string) {
-  const db = await readDatabase()
-  const target = db.paymentSessions.find((item) => item.id === paymentId)
-  if (!target) {
-    throw new Error('승인할 결제가 없습니다.')
-  }
-
-  const updated = {
-    ...target,
-    status: 'APPROVED' as const,
-    approvalCode: `#${generateId('TXN').slice(-8).toUpperCase()}`,
-    cardLast4: '9402',
-    approvedAt: new Date().toISOString(),
-  }
-
-  await updateDatabase((current) => ({
-    ...current,
-    paymentSessions: current.paymentSessions.map((item) =>
-      item.id === paymentId ? updated : item,
-    ),
-  }))
-
-  return updated
+export async function scanPayment(qrId: string) {
+  return runDetailAction(qrId, 'scan')
 }
 
-export async function rejectPayment(paymentId: string) {
-  const db = await readDatabase()
-  const target = db.paymentSessions.find((item) => item.id === paymentId)
-  if (!target) {
-    throw new Error('거절할 결제가 없습니다.')
-  }
-
-  const updated = { ...target, status: 'REJECTED' as const }
-  await updateDatabase((current) => ({
-    ...current,
-    paymentSessions: current.paymentSessions.map((item) =>
-      item.id === paymentId ? updated : item,
-    ),
-  }))
-
-  return updated
+export async function approvePayment(qrId: string) {
+  return runStatusAction(qrId, 'approve')
 }
 
-export async function completePayment(paymentId: string) {
-  const db = await readDatabase()
-  const target = db.paymentSessions.find((item) => item.id === paymentId)
-  if (!target) {
-    throw new Error('완료할 결제가 없습니다.')
-  }
-
-  const updated = {
-    ...target,
-    status: 'COMPLETED' as const,
-    approvedAt: target.approvedAt ?? new Date().toISOString(),
-  }
-
-  await updateDatabase((current) => ({
-    ...current,
-    paymentSessions: current.paymentSessions.map((item) =>
-      item.id === paymentId ? updated : item,
-    ),
-  }))
-
-  await createTransactionFromPayment(updated)
-
-  return updated
+export async function rejectPayment(qrId: string) {
+  return runStatusAction(qrId, 'reject')
 }
