@@ -2,7 +2,7 @@ import { useEffect, useId, useRef, useState } from 'react'
 import { Html5Qrcode } from 'html5-qrcode'
 import QRCode from 'qrcode'
 import { formatCurrency, formatDateTime } from '../api/mockClient'
-import type { PaymentSession, Product, TransactionItem } from '../types/payment'
+import type { PaymentSession, TransactionItem } from '../types/payment'
 import { CheckIcon, CloseIcon, QrIcon } from './icons'
 import { PrimaryButton, SecondaryButton, SectionCard } from './ui'
 
@@ -18,7 +18,7 @@ export function CardVisual({
   return (
     <SectionCard className="bg-[linear-gradient(135deg,_#e0f2fe,_#eff6ff_58%,_#e2e8f0)]">
       <div className="mb-3 flex items-center justify-between text-xs font-bold tracking-[0.24em] text-slate-400">
-        <span>ARCHITECTURAL PLAN 01</span>
+        <span>REGISTERED CARD</span>
         <span>VIRTUAL PAY</span>
       </div>
       <div className="space-y-2">
@@ -35,13 +35,19 @@ export function ProductCard({
   quantity,
   onChange,
 }: {
-  product: Product
+  product: { id: string; name: string; price: number; image?: string }
   quantity: number
   onChange: (next: number) => void
 }) {
   return (
     <article className="overflow-hidden rounded-[24px] bg-white p-4 shadow-[0_10px_30px_rgba(148,163,184,0.16)]">
-      <img src={product.image} alt={product.name} className="h-36 w-full rounded-[18px] object-cover" />
+      {product.image ? (
+        <img src={product.image} alt={product.name} className="h-36 w-full rounded-[18px] object-cover" />
+      ) : (
+        <div className="flex h-36 w-full items-center justify-center rounded-[18px] bg-[linear-gradient(135deg,_#dbeafe,_#eff6ff)] text-lg font-black text-slate-600">
+          {product.name}
+        </div>
+      )}
       <div className="mt-4">
         <h3 className="text-xl font-extrabold tracking-[-0.03em] text-slate-800">{product.name}</h3>
         <p className="mt-1 text-2xl font-black text-blue-600">{formatCurrency(product.price)}</p>
@@ -207,20 +213,20 @@ export function ScannerPreview({
         scanner.clear()
       }
     }
-  }, [onDetected, scannerId])
+  }, [lastDecoded, onDetected, scannerId])
 
   const helperText =
     cameraState === 'insecure'
       ? '카메라는 HTTPS 또는 localhost에서만 동작합니다.'
       : cameraState === 'requesting'
         ? '카메라 권한을 요청하고 있습니다.'
-      : cameraState === 'blocked'
-        ? '카메라 권한이 거부되었거나 사용할 수 없습니다.'
-        : cameraState === 'unsupported'
-          ? '이 브라우저는 카메라 미리보기를 지원하지 않습니다.'
-          : hasPayment
-            ? '프레임 안에 QR 코드를 맞춰주세요.'
-            : '대기 중인 결제 QR이 없습니다.'
+        : cameraState === 'blocked'
+          ? '카메라 권한이 없거나 사용할 수 없습니다.'
+          : cameraState === 'unsupported'
+            ? '이 브라우저는 카메라 미리보기를 지원하지 않습니다.'
+            : hasPayment
+              ? '프레임 안에 QR 코드를 맞춰주세요.'
+              : '스캔 가능한 결제를 기다리는 중입니다.'
 
   return (
     <div className="rounded-[30px] bg-[linear-gradient(180deg,_#a7c8f7,_#c7edf9)] px-6 py-10 text-center">
@@ -229,14 +235,14 @@ export function ScannerPreview({
         {cameraState !== 'ready' ? (
           <div className="absolute inset-0 flex items-center justify-center bg-white/10 px-6 text-center text-sm font-bold text-white/85">
             {cameraState === 'insecure'
-              ? '보안 연결이 아니라 카메라를 열 수 없습니다.'
+              ? '보안 연결이 아니어서 카메라를 열 수 없습니다.'
               : cameraState === 'requesting'
                 ? '카메라를 여는 중입니다.'
-              : cameraState === 'blocked'
-                ? '카메라 권한 허용 후 다시 접속해주세요.'
-                : cameraState === 'unsupported'
-                  ? '카메라 미리보기를 지원하지 않는 환경입니다.'
-                  : '카메라를 준비하는 중입니다.'}
+                : cameraState === 'blocked'
+                  ? '카메라 권한 허용 후 다시 시도해주세요.'
+                  : cameraState === 'unsupported'
+                    ? '카메라 미리보기를 지원하지 않는 환경입니다.'
+                    : '카메라를 준비하는 중입니다.'}
           </div>
         ) : null}
         <div className="absolute inset-10 z-10 rounded-[30px] border-0">
@@ -247,13 +253,13 @@ export function ScannerPreview({
           <div className="absolute left-0 right-0 top-1/2 h-px -translate-y-1/2 bg-blue-400" />
         </div>
       </div>
-      <p className="mt-8 text-2xl font-black tracking-[-0.04em] text-white">사용자의 QR 코드를 스캔하세요.</p>
+      <p className="mt-8 text-2xl font-black tracking-[-0.04em] text-white">사용자 QR 코드를 스캔하세요</p>
       <p className="mx-auto mt-3 inline-flex rounded-full bg-slate-800/45 px-4 py-2 text-sm font-semibold text-white/80">
         {helperText}
       </p>
       <div className="mx-auto mt-8 flex w-fit items-center rounded-[22px] bg-white/15 px-8 py-4 text-white shadow-[0_10px_25px_rgba(59,130,246,0.25)]">
         <QrIcon className="mr-3 h-6 w-6" />
-        <span className="font-bold">html5-qrcode 연결 가능 영역</span>
+        <span className="font-bold">html5-qrcode camera session</span>
       </div>
       <div className="mt-4 space-y-1 text-xs font-bold tracking-[0.16em] text-white/70">
         <p>CAMERA STATE: {cameraState.toUpperCase()}</p>
@@ -266,35 +272,37 @@ export function ScannerPreview({
 
 export function StatusTimeline({ status }: { status: PaymentSession['status'] }) {
   const steps = [
-    { key: 'WAITING', label: '결제 요청 접수' },
-    { key: 'SCANNED', label: '결제 스캔 완료' },
+    { key: 'CREATED', label: '결제 요청 생성' },
+    { key: 'SCANNED', label: 'QR 스캔 완료' },
     { key: 'APPROVED', label: '결제 승인 완료' },
-    { key: 'COMPLETED', label: '결제 처리 완료' },
-  ]
-  const order = ['WAITING', 'SCANNED', 'APPROVED', 'COMPLETED']
+  ] satisfies Array<{ key: PaymentSession['status']; label: string }>
+  const order: PaymentSession['status'][] = ['CREATED', 'SCANNED', 'APPROVED']
   const currentIndex = Math.max(order.indexOf(status), 0)
 
   return (
     <SectionCard className="bg-slate-50">
-      <p className="mb-4 text-sm font-bold text-slate-500">승인 프로세스</p>
+      <p className="mb-4 text-sm font-bold text-slate-500">결제 프로세스</p>
       <div className="space-y-4">
         {steps.map((step, index) => {
-          const done = index <= currentIndex
-          const rejected = status === 'REJECTED'
+          const rejected = ['REJECTED', 'CANCELED', 'EXPIRED'].includes(status)
+          const done = !rejected && index <= currentIndex
+
           return (
             <div key={step.key} className="flex items-start gap-3">
               <div
                 className={`mt-0.5 flex h-7 w-7 items-center justify-center rounded-full ${
-                  rejected && index > 1
-                    ? 'bg-slate-200 text-slate-400'
+                  rejected
+                    ? 'bg-rose-100 text-rose-500'
                     : done
                       ? 'bg-blue-600 text-white'
                       : 'border border-slate-300 bg-white text-slate-400'
                 }`}
               >
-                {rejected && index > 1 ? <CloseIcon className="h-4 w-4" /> : <CheckIcon className="h-4 w-4" />}
+                {rejected ? <CloseIcon className="h-4 w-4" /> : <CheckIcon className="h-4 w-4" />}
               </div>
-              <p className={`font-bold ${done ? 'text-blue-600' : 'text-slate-400'}`}>{step.label}</p>
+              <p className={`font-bold ${done ? 'text-blue-600' : rejected ? 'text-rose-500' : 'text-slate-400'}`}>
+                {step.label}
+              </p>
             </div>
           )
         })}
@@ -307,14 +315,15 @@ export function TransactionList({ items }: { items: TransactionItem[] }) {
   return (
     <div className="space-y-3">
       {items.map((item) => (
-        <article key={item.id} className="flex items-center justify-between rounded-[24px] bg-white p-4 shadow-[0_10px_30px_rgba(148,163,184,0.12)]">
+        <article key={item.transactionId} className="flex items-center justify-between rounded-[24px] bg-white p-4 shadow-[0_10px_30px_rgba(148,163,184,0.12)]">
           <div>
-            <p className="text-xl font-black tracking-[-0.04em] text-slate-800">{item.merchant}</p>
-            <p className="mt-1 text-sm font-semibold text-slate-400">{formatDateTime(item.approvedAt)}</p>
+            <p className="text-xl font-black tracking-[-0.04em] text-slate-800">{item.marketName}</p>
+            <p className="mt-1 text-sm font-semibold text-slate-400">
+              {formatDateTime(item.transactionDatetime)} · {item.menuName} {item.quantity}개
+            </p>
           </div>
-          <p className={`text-2xl font-black ${item.amount > 0 ? 'text-blue-600' : 'text-slate-700'}`}>
-            {item.amount > 0 ? '+' : ''}
-            {formatCurrency(item.amount)}
+          <p className="text-2xl font-black text-slate-700">
+            -{formatCurrency(item.amount)}
           </p>
         </article>
       ))}

@@ -1,43 +1,43 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { fetchPaymentSession } from '../../api/userApi'
 import { formatCurrency } from '../../api/mockClient'
+import { fetchPaymentSession } from '../../api/userApi'
 import { StatusTimeline } from '../../components/payment'
 import { AppFrame, BottomNav, Content, PageHeader, SectionCard } from '../../components/ui'
 import type { PaymentSession } from '../../types/payment'
 
-const statusText: Record<string, string> = {
-  WAITING: 'QR 스캔 대기 중',
+const statusText: Record<PaymentSession['status'], string> = {
+  CREATED: 'QR 생성 완료',
   SCANNED: '결제 승인 대기 중',
-  APPROVED: '승인 완료, 결제 마무리 중',
-  COMPLETED: '결제가 완료되었습니다.',
+  APPROVED: '결제가 승인되었습니다.',
   REJECTED: '결제가 거절되었습니다.',
-  CANCELLED: '결제가 취소되었습니다.',
+  CANCELED: '결제가 취소되었습니다.',
+  EXPIRED: '결제가 만료되었습니다.',
 }
 
 export function PaymentProgressPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const paymentId = searchParams.get('paymentId') ?? ''
+  const qrId = searchParams.get('qrId') ?? ''
   const [session, setSession] = useState<PaymentSession | null>(null)
 
   useEffect(() => {
-    if (!paymentId) {
+    if (!qrId) {
       return
     }
 
     const sync = async () => {
-      const data = await fetchPaymentSession(paymentId)
+      const data = await fetchPaymentSession(qrId)
       setSession(data)
-      if (data && ['COMPLETED', 'REJECTED', 'CANCELLED'].includes(data.status)) {
-        navigate(`/user/payment/result?paymentId=${data.id}`, { replace: true })
+      if (['APPROVED', 'REJECTED', 'CANCELED', 'EXPIRED'].includes(data.status)) {
+        navigate(`/user/payment/result?qrId=${data.qrId}`, { replace: true })
       }
     }
 
     sync()
     const timer = window.setInterval(sync, 1500)
     return () => window.clearInterval(timer)
-  }, [navigate, paymentId])
+  }, [navigate, qrId])
 
   if (!session) {
     return null
@@ -45,19 +45,19 @@ export function PaymentProgressPage() {
 
   return (
     <AppFrame>
-      <PageHeader title="결제 승인 진행" backTo={`/user/payment/qr?paymentId=${session.id}`} />
+      <PageHeader title="결제 진행" backTo={`/user/payment/qr?qrId=${session.qrId}`} />
       <Content>
         <div className="space-y-6">
           <SectionCard className="text-center">
             <div className="mx-auto h-2 w-2 rounded-full bg-blue-600" />
             <div className="mx-auto mt-5 flex h-32 w-32 items-center justify-center rounded-[28px] border border-blue-100 bg-blue-50 text-5xl">
-              💳
+              결
             </div>
             <h2 className="mt-8 text-4xl font-black tracking-[-0.05em] text-slate-800">
-              {session.status === 'WAITING' ? '결제 처리 중...' : statusText[session.status]}
+              {statusText[session.status]}
             </h2>
             <p className="mt-3 text-base font-semibold text-slate-400">
-              안전한 결제를 위해 승인 정보를 확인하고 있습니다.
+              단말 응답을 기다리고 있습니다.
             </p>
           </SectionCard>
           <SectionCard>
@@ -68,11 +68,11 @@ export function PaymentProgressPage() {
               </div>
               <div className="flex items-center justify-between border-t border-slate-100 pt-4">
                 <span className="text-base font-bold text-slate-400">결제 금액</span>
-                <span className="text-3xl font-black text-slate-800">{formatCurrency(session.amount)}</span>
+                <span className="text-3xl font-black text-slate-800">{formatCurrency(session.paymentAmount)}</span>
               </div>
               <div className="flex items-center justify-between border-t border-slate-100 pt-4">
                 <span className="text-base font-bold text-slate-400">가맹점</span>
-                <span className="text-lg font-black text-slate-700">{session.merchantName}</span>
+                <span className="text-lg font-black text-slate-700">{session.marketName}</span>
               </div>
             </div>
           </SectionCard>

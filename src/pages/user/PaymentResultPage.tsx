@@ -8,24 +8,25 @@ import type { PaymentSession, RegisteredCard } from '../../types/payment'
 export function PaymentResultPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const paymentId = searchParams.get('paymentId') ?? ''
+  const qrId = searchParams.get('qrId') ?? ''
   const [session, setSession] = useState<PaymentSession | null>(null)
   const [card, setCard] = useState<RegisteredCard | null>(null)
 
   useEffect(() => {
-    if (!paymentId) {
+    if (!qrId) {
       navigate('/user/shop', { replace: true })
       return
     }
-    fetchPaymentSession(paymentId).then(setSession)
+
+    fetchPaymentSession(qrId).then(setSession)
     fetchRegisteredCard().then(setCard)
-  }, [navigate, paymentId])
+  }, [navigate, qrId])
 
   if (!session) {
     return null
   }
 
-  const success = session.status === 'COMPLETED'
+  const success = session.status === 'APPROVED'
 
   return (
     <AppFrame>
@@ -36,36 +37,35 @@ export function PaymentResultPage() {
             <div className={`mx-auto flex h-24 w-24 items-center justify-center rounded-[28px] text-4xl ${
               success ? 'bg-blue-100 text-blue-600' : 'bg-rose-100 text-rose-500'
             }`}>
-              {success ? '✓' : '✕'}
+              {success ? '승' : '실'}
             </div>
             <h2 className="mt-6 text-5xl font-black tracking-[-0.05em] text-slate-800">
-              {success ? '결제 완료' : '결제 실패'}
+              {success ? '결제 완료' : '결제 종료'}
             </h2>
             <p className="mt-3 text-base font-semibold text-slate-400">
-              {success ? '요청하신 결제가 성공적으로 처리되었습니다.' : '결제가 정상 처리되지 않았습니다.'}
+              {session.message ?? (success ? '결제가 정상 처리되었습니다.' : '결제가 완료되지 않았습니다.')}
             </p>
           </SectionCard>
           <SectionCard>
             <div className="space-y-5">
               <div className="flex items-center justify-between">
-                <span className="text-base font-bold text-slate-400">결제 일시</span>
+                <span className="text-base font-bold text-slate-400">처리 시각</span>
                 <span className="text-lg font-black text-slate-700">
-                  {formatDateTime(session.approvedAt ?? session.createdAt)}
+                  {formatDateTime(session.changedAt ?? session.requestedAt)}
                 </span>
               </div>
               <div className="flex items-center justify-between border-t border-slate-100 pt-5">
                 <span className="text-base font-bold text-slate-400">결제 상품</span>
                 <span className="text-lg font-black text-slate-700">
-                  {session.lines[0]?.name}
-                  {session.lines.length > 1 ? ` 외 ${session.lines.length - 1}건` : ''}
+                  {session.menuName} {session.quantity}개
                 </span>
               </div>
               <div className="flex items-center justify-between border-t border-slate-100 pt-5">
                 <span className="text-base font-bold text-slate-400">결제 금액</span>
-                <span className="text-4xl font-black text-blue-600">{formatCurrency(session.amount)}</span>
+                <span className="text-4xl font-black text-blue-600">{formatCurrency(session.paymentAmount)}</span>
               </div>
               <div className="flex items-center justify-between border-t border-slate-100 pt-5">
-                <span className="text-base font-bold text-slate-400">카드 잔액</span>
+                <span className="text-base font-bold text-slate-400">현재 잔액</span>
                 <span className="text-2xl font-black text-slate-700">
                   {card ? formatCurrency(card.balance) : '-'}
                 </span>
@@ -73,7 +73,7 @@ export function PaymentResultPage() {
             </div>
           </SectionCard>
           <PrimaryButton className="w-full" onClick={() => navigate('/user/history')}>
-            결제 내역 보기
+            이용내역 보기
           </PrimaryButton>
         </div>
       </Content>
