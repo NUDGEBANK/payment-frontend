@@ -1,11 +1,12 @@
 import { Navigate, useNavigate } from 'react-router-dom'
+import { clearRegisteredCard } from '../../api/userApi'
 import { useUserApp } from '../../app/providers/UserAppProvider'
 import { CardVisual } from '../../components/payment'
-import { AppFrame, BottomNav, Content, PageHeader, PrimaryButton } from '../../components/ui'
+import { AppFrame, BottomNav, Content, PageHeader, PrimaryButton, SecondaryButton } from '../../components/ui'
 
 export function CardOverviewPage() {
   const navigate = useNavigate()
-  const { card } = useUserApp()
+  const { card, setCard } = useUserApp()
 
   if (!card) {
     return <Navigate to="/user/register" replace />
@@ -17,18 +18,23 @@ export function CardOverviewPage() {
       <Content>
         <div className="space-y-6">
           <div>
-            <p className="text-sm font-black tracking-[0.24em] text-slate-400">ARCHITECTURAL PLAN 01</p>
+            <p className="text-sm font-black tracking-[0.24em] text-slate-400">REGISTERED CARD</p>
             <h2 className="mt-3 text-5xl font-black tracking-[-0.05em] text-slate-800">{card.alias}</h2>
           </div>
           <CardVisual alias={card.alias} balance={card.balance} numberMasked={card.numberMasked} />
-          <PrimaryButton className="w-full" onClick={() => navigate('/user/register')}>
-            카드 변경
+          <PrimaryButton className="w-full" onClick={() => navigate('/user/shop')}>
+            결제하러 가기
           </PrimaryButton>
-          <p className="text-center text-sm font-semibold text-slate-300">
-            안전한 금융 거래를 위해 입력하신 정보는 암호화되어 전송됩니다.
-            <br />
-            Architectural Security Protocol v2.4 Enabled
-          </p>
+          <SecondaryButton
+            className="w-full"
+            onClick={async () => {
+              await clearRegisteredCard()
+              setCard(null)
+              navigate('/user/register')
+            }}
+          >
+            카드 다시 등록
+          </SecondaryButton>
         </div>
       </Content>
       <BottomNav />
