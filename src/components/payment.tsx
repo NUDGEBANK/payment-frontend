@@ -3,7 +3,7 @@ import { Html5Qrcode } from 'html5-qrcode'
 import QRCode from 'qrcode'
 import { formatCurrency, formatDateTime } from '../api/mockClient'
 import type { PaymentSession, TransactionItem } from '../types/payment'
-import { CheckIcon, CloseIcon, QrIcon } from './icons'
+import { CheckIcon, CloseIcon } from './icons'
 import { PrimaryButton, SecondaryButton, SectionCard } from './ui'
 
 export function CardVisual({
