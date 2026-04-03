@@ -133,25 +133,21 @@ export function ScannerPreview({
 }) {
   const scannerId = useId().replace(/[:]/g, '')
   const scannerRef = useRef<Html5Qrcode | null>(null)
+  const isSecure =
+    window.isSecureContext ||
+    window.location.hostname === 'localhost' ||
+    window.location.hostname === '127.0.0.1'
+  const supportsCamera = Boolean(navigator.mediaDevices?.getUserMedia)
+  const initialCameraState: 'idle' | 'requesting' | 'ready' | 'blocked' | 'unsupported' | 'insecure' =
+    !supportsCamera ? 'unsupported' : !isSecure ? 'insecure' : 'idle'
   const [cameraState, setCameraState] = useState<
     'idle' | 'requesting' | 'ready' | 'blocked' | 'unsupported' | 'insecure'
-  >('idle')
-  const [scanState, setScanState] = useState('SCANNER_IDLE')
+  >(initialCameraState)
+  const [, setScanState] = useState('SCANNER_IDLE')
   const [lastDecoded, setLastDecoded] = useState('')
 
   useEffect(() => {
-    const isSecure =
-      window.isSecureContext ||
-      window.location.hostname === 'localhost' ||
-      window.location.hostname === '127.0.0.1'
-
-    if (!navigator.mediaDevices?.getUserMedia) {
-      setCameraState('unsupported')
-      return
-    }
-
-    if (!isSecure) {
-      setCameraState('insecure')
+    if (initialCameraState !== 'idle') {
       return
     }
 
@@ -212,7 +208,7 @@ export function ScannerPreview({
         scanner.clear()
       }
     }
-  }, [lastDecoded, onDetected, scannerId])
+  }, [initialCameraState, lastDecoded, onDetected, scannerId])
 
   const helperText =
     cameraState === 'insecure'
