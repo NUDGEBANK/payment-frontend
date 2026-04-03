@@ -45,6 +45,7 @@ interface PaymentDetailResponse {
   status: PaymentSession['status']
   menuName: string
   quantity: number
+  message?: string
 }
 
 interface PaymentActionResponse {
@@ -89,7 +90,7 @@ function toPaymentSession(
     ],
     expiresAt: getPaymentExpiresAt(detail.requestedAt),
     changedAt: action?.changedAt,
-    message: action?.message,
+    message: detail.message ?? action?.message,
   }
 }
 

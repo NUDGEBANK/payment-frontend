@@ -76,7 +76,7 @@ export function ShopPage() {
       navigate(`/user/payment/qr?qrId=${session.qrId}`)
     } catch (caught) {
       if (caught instanceof ApiError) {
-        setError(caught.code)
+        setError(caught.code === 'INSUFFICIENT_BALANCE' ? '잔액이 부족합니다.' : caught.message || caught.code)
       } else {
         setError('결제 요청 생성에 실패했습니다.')
       }

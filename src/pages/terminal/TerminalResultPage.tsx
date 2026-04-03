@@ -4,6 +4,7 @@ import { formatCurrency, formatDateTime } from '../../api/mockClient'
 import { fetchPaymentSession } from '../../api/userApi'
 import { AppFrame, Content, PageHeader, PrimaryButton, SectionCard } from '../../components/ui'
 import type { PaymentSession } from '../../types/payment'
+import { Check, CircleX } from "lucide-react";
 
 export function TerminalResultPage() {
   const navigate = useNavigate()
@@ -43,10 +44,12 @@ export function TerminalResultPage() {
       <Content>
         <div className="space-y-6">
           <SectionCard className="text-center">
-            <div className={`mx-auto flex h-24 w-24 items-center justify-center rounded-[28px] text-4xl ${
-              success ? 'bg-blue-600 text-white' : 'bg-rose-500 text-white'
-            }`}>
-              {success ? '승' : '거'}
+            <div
+              className={`mx-auto flex h-24 w-24 items-center justify-center rounded-[28px] text-4xl ${
+                success ? 'bg-blue-100 text-blue-600' : 'bg-rose-100 text-rose-500'
+              }`}
+            >
+              {success ? <Check className="h-10 w-10" /> : <CircleX className="h-10 w-10" />}
             </div>
             <h2 className="mt-6 text-5xl font-black tracking-[-0.05em] text-slate-800">
               {success ? '결제 승인 완료' : '결제 거절 완료'}
@@ -72,11 +75,11 @@ export function TerminalResultPage() {
               <div className="grid grid-cols-2 gap-4 border-t border-dashed border-slate-200 pt-5">
                 <div className="space-y-3">
                   <p className="text-sm font-bold text-slate-400">처리 시각</p>
-                  <p className="text-lg font-black text-slate-700">{formatDateTime(session.changedAt ?? session.requestedAt)}</p>
+                  <p className="text-sm font-black text-slate-700">{formatDateTime(session.changedAt ?? session.requestedAt)}</p>
                 </div>
                 <div className="space-y-3">
                   <p className="text-sm font-bold text-slate-400">QR ID</p>
-                  <p className="truncate text-lg font-black text-slate-700">{session.qrId}</p>
+                  <p className="break-all text-sm font-black text-slate-700">{session.qrId}</p>
                 </div>
               </div>
             </div>

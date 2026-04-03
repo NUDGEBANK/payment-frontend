@@ -5,6 +5,7 @@ import { fetchPaymentSession } from '../../api/userApi'
 import { StatusTimeline } from '../../components/payment'
 import { AppFrame, BottomNav, Content, PageHeader, SectionCard } from '../../components/ui'
 import type { PaymentSession } from '../../types/payment'
+import { Loader2 } from 'lucide-react'
 
 const statusText: Record<PaymentSession['status'], string> = {
   CREATED: 'QR 생성 완료',
@@ -30,7 +31,8 @@ export function PaymentProgressPage() {
       const data = await fetchPaymentSession(qrId)
       setSession(data)
       if (['APPROVED', 'REJECTED', 'CANCELED', 'EXPIRED'].includes(data.status)) {
-        navigate(`/user/payment/result?qrId=${data.qrId}`, { replace: true })
+        const reason = data.message ? `&reason=${encodeURIComponent(data.message)}` : ''
+        navigate(`/user/payment/result?qrId=${data.qrId}${reason}`, { replace: true })
       }
     }
 
@@ -51,7 +53,7 @@ export function PaymentProgressPage() {
           <SectionCard className="text-center">
             <div className="mx-auto h-2 w-2 rounded-full bg-blue-600" />
             <div className="mx-auto mt-5 flex h-32 w-32 items-center justify-center rounded-[28px] border border-blue-100 bg-blue-50 text-5xl">
-              결
+              <Loader2 className="animate-spin" />
             </div>
             <h2 className="mt-8 text-4xl font-black tracking-[-0.05em] text-slate-800">
               {statusText[session.status]}

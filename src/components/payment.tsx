@@ -120,7 +120,6 @@ export function QrPlaceholder({ code }: { code: string }) {
       <div className="mx-auto flex h-64 w-64 items-center justify-center rounded-[20px] border-2 border-blue-200 bg-blue-50 p-3">
         {src ? <img src={src} alt="payment qr code" className="h-full w-full rounded-xl" /> : null}
       </div>
-      <p className="mt-4 text-center text-sm font-bold tracking-[0.24em] text-slate-400">{code}</p>
     </div>
   )
 }
@@ -246,10 +245,6 @@ export function ScannerPreview({
           </div>
         ) : null}
         <div className="absolute inset-10 z-10 rounded-[30px] border-0">
-          <div className="absolute left-0 top-0 h-12 w-12 border-l-4 border-t-4 border-blue-600" />
-          <div className="absolute right-0 top-0 h-12 w-12 border-r-4 border-t-4 border-blue-600" />
-          <div className="absolute bottom-0 left-0 h-12 w-12 border-b-4 border-l-4 border-blue-600" />
-          <div className="absolute bottom-0 right-0 h-12 w-12 border-b-4 border-r-4 border-blue-600" />
           <div className="absolute left-0 right-0 top-1/2 h-px -translate-y-1/2 bg-blue-400" />
         </div>
       </div>
@@ -257,15 +252,6 @@ export function ScannerPreview({
       <p className="mx-auto mt-3 inline-flex rounded-full bg-slate-800/45 px-4 py-2 text-sm font-semibold text-white/80">
         {helperText}
       </p>
-      <div className="mx-auto mt-8 flex w-fit items-center rounded-[22px] bg-white/15 px-8 py-4 text-white shadow-[0_10px_25px_rgba(59,130,246,0.25)]">
-        <QrIcon className="mr-3 h-6 w-6" />
-        <span className="font-bold">html5-qrcode camera session</span>
-      </div>
-      <div className="mt-4 space-y-1 text-xs font-bold tracking-[0.16em] text-white/70">
-        <p>CAMERA STATE: {cameraState.toUpperCase()}</p>
-        <p>SCAN STATE: {scanState}</p>
-        {lastDecoded ? <p className="truncate">LAST QR: {lastDecoded}</p> : null}
-      </div>
     </div>
   )
 }
@@ -319,10 +305,10 @@ export function TransactionList({ items }: { items: TransactionItem[] }) {
           <div>
             <p className="text-xl font-black tracking-[-0.04em] text-slate-800">{item.marketName}</p>
             <p className="mt-1 text-sm font-semibold text-slate-400">
-              {formatDateTime(item.transactionDatetime)} · {item.menuName} {item.quantity}개
+              {formatDateTime(item.transactionDatetime)}
             </p>
           </div>
-          <p className="text-2xl font-black text-slate-700">
+          <p className="text-xl font-black text-slate-700">
             -{formatCurrency(item.amount)}
           </p>
         </article>
