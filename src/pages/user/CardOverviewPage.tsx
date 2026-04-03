@@ -38,7 +38,7 @@ export function CardOverviewPage() {
               navigate('/user/register')
             }}
           >
-            카드 다시 등록
+            카드 변경
           </SecondaryButton>
         </div>
       </Content>

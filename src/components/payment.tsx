@@ -120,7 +120,6 @@ export function QrPlaceholder({ code }: { code: string }) {
       <div className="mx-auto flex h-64 w-64 items-center justify-center rounded-[20px] border-2 border-blue-200 bg-blue-50 p-3">
         {src ? <img src={src} alt="payment qr code" className="h-full w-full rounded-xl" /> : null}
       </div>
-      <p className="mt-4 text-center text-sm font-bold tracking-[0.24em] text-slate-400">{code}</p>
     </div>
   )
 }

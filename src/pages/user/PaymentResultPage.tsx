@@ -1,15 +1,79 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
+import { Ban, Check, CircleAlert, CircleX, Clock3, type LucideIcon } from 'lucide-react'
 import { formatCurrency, formatDateTime } from '../../api/mockClient'
 import { fetchPaymentSession } from '../../api/userApi'
 import { useUserApp } from '../../app/providers/UserAppProvider'
 import { AppFrame, BottomNav, Content, PageHeader, PrimaryButton, SectionCard } from '../../components/ui'
 import type { PaymentSession, RegisteredCard } from '../../types/payment'
 
+interface ResultCopy {
+  icon: LucideIcon
+  iconClassName: string
+  title: string
+  description: string
+}
+
+function getResultCopy(session: PaymentSession, reason: string): ResultCopy {
+  const normalizedMessage = (reason || session.message || '').toLowerCase()
+
+  switch (session.status) {
+    case 'APPROVED':
+      return {
+        icon: Check,
+        iconClassName: 'bg-blue-100 text-blue-600',
+        title: '결제 완료',
+        description: '결제가 정상 처리되었습니다.',
+      }
+    case 'CANCELED':
+      return {
+        icon: Ban,
+        iconClassName: 'bg-rose-100 text-rose-500',
+        title: '결제 취소',
+        description: '결제가 취소되었습니다.',
+      }
+    case 'REJECTED':
+      if (
+        normalizedMessage.includes('잔액 부족') ||
+        normalizedMessage.includes('insufficient_balance') ||
+        normalizedMessage.includes('insufficient balance')
+      ) {
+        return {
+          icon: CircleAlert,
+          iconClassName: 'bg-amber-100 text-amber-600',
+          title: '잔액 부족',
+          description: '잔액이 부족합니다.',
+        }
+      }
+
+      return {
+        icon: CircleX,
+        iconClassName: 'bg-rose-100 text-rose-500',
+        title: '결제 거절',
+        description: '결제가 거절되었습니다.',
+      }
+    case 'EXPIRED':
+      return {
+        icon: Clock3,
+        iconClassName: 'bg-rose-100 text-rose-500',
+        title: '결제 만료',
+        description: '결제가 만료되었습니다.',
+      }
+    default:
+      return {
+        icon: CircleAlert,
+        iconClassName: 'bg-slate-100 text-slate-500',
+        title: '결제 종료',
+        description: session.message ?? '결제가 완료되지 않았습니다.',
+      }
+  }
+}
+
 export function PaymentResultPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const qrId = searchParams.get('qrId') ?? ''
+  const reason = searchParams.get('reason') ?? ''
   const { refreshCard } = useUserApp()
   const [session, setSession] = useState<PaymentSession | null>(null)
   const [card, setCard] = useState<RegisteredCard | null>(null)
@@ -28,7 +92,8 @@ export function PaymentResultPage() {
     return null
   }
 
-  const success = session.status === 'APPROVED'
+  const resultCopy = getResultCopy(session, reason)
+  const ResultIcon = resultCopy.icon
 
   return (
     <AppFrame>
@@ -36,16 +101,14 @@ export function PaymentResultPage() {
       <Content>
         <div className="space-y-6">
           <SectionCard className="text-center">
-            <div className={`mx-auto flex h-24 w-24 items-center justify-center rounded-[28px] text-4xl ${
-              success ? 'bg-blue-100 text-blue-600' : 'bg-rose-100 text-rose-500'
-            }`}>
-              {success ? '승' : '실'}
+            <div className={`mx-auto flex h-24 w-24 items-center justify-center rounded-[28px] text-4xl ${resultCopy.iconClassName}`}>
+              <ResultIcon className="h-10 w-10" />
             </div>
             <h2 className="mt-6 text-5xl font-black tracking-[-0.05em] text-slate-800">
-              {success ? '결제 완료' : '결제 종료'}
+              {resultCopy.title}
             </h2>
             <p className="mt-3 text-base font-semibold text-slate-400">
-              {session.message ?? (success ? '결제가 정상 처리되었습니다.' : '결제가 완료되지 않았습니다.')}
+              {resultCopy.description}
             </p>
           </SectionCard>
           <SectionCard>

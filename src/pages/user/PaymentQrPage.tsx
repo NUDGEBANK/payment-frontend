@@ -106,7 +106,7 @@ export function PaymentQrPage() {
           </SectionCard>
           <QrPlaceholder code={session.qrId} />
           <div className="space-y-2 text-center">
-            <p className="text-3xl font-black tracking-[-0.05em] text-slate-800">단말에서 QR을 스캔하세요</p>
+            <p className="text-3xl font-black tracking-[-0.05em] text-slate-800">QR 스캔 대기중</p>
             <p className="text-base font-bold text-slate-500">남은 시간 {remaining}</p>
           </div>
           {error ? (
