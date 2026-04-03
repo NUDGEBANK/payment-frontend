@@ -6,6 +6,7 @@ import { approvePayment, rejectPayment } from '../../api/terminalApi'
 import { fetchPaymentSession } from '../../api/userApi'
 import { AppFrame, Content, PageHeader, SectionCard } from '../../components/ui'
 import type { PaymentSession } from '../../types/payment'
+import { Loader2 } from "lucide-react";
 
 export function TerminalProgressPage() {
   const navigate = useNavigate()
@@ -92,9 +93,9 @@ export function TerminalProgressPage() {
         <div className="space-y-6">
           <SectionCard className="text-center">
             <div className="mx-auto flex h-28 w-28 items-center justify-center rounded-[30px] border border-blue-100 bg-white text-5xl shadow-[0_12px_24px_rgba(148,163,184,0.16)]">
-              결
+              <Loader2 className="animate-spin" />
             </div>
-            <h2 className="mt-8 text-5xl font-black tracking-[-0.05em] text-slate-800">{label}</h2>
+            <h2 className="mt-8 text-3xl font-black tracking-[-0.05em] text-slate-800">{label}</h2>
             <p className="mt-3 text-base font-semibold text-slate-400">
               서버 응답을 기다리고 있습니다.
             </p>

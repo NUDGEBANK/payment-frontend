@@ -14,8 +14,14 @@ interface ResultCopy {
   description: string
 }
 
-function getResultCopy(session: PaymentSession, reason: string): ResultCopy {
+function getResultCopy(session: PaymentSession, reason: string, card: RegisteredCard | null): ResultCopy {
   const normalizedMessage = (reason || session.message || '').toLowerCase()
+  const isInsufficientBalance =
+    normalizedMessage.includes('잔액') ||
+    normalizedMessage.includes('insufficient_balance') ||
+    normalizedMessage.includes('insufficient balance') ||
+    (normalizedMessage.includes('insufficient') && normalizedMessage.includes('balance')) ||
+    (!!card && session.status === 'REJECTED' && session.paymentAmount > card.balance)
 
   switch (session.status) {
     case 'APPROVED':
@@ -33,16 +39,12 @@ function getResultCopy(session: PaymentSession, reason: string): ResultCopy {
         description: '결제가 취소되었습니다.',
       }
     case 'REJECTED':
-      if (
-        normalizedMessage.includes('잔액 부족') ||
-        normalizedMessage.includes('insufficient_balance') ||
-        normalizedMessage.includes('insufficient balance')
-      ) {
+      if (isInsufficientBalance) {
         return {
           icon: CircleAlert,
           iconClassName: 'bg-amber-100 text-amber-600',
           title: '잔액 부족',
-          description: '잔액이 부족합니다.',
+          description: '잔액 부족으로 결제가 거절되었습니다.',
         }
       }
 
@@ -92,7 +94,7 @@ export function PaymentResultPage() {
     return null
   }
 
-  const resultCopy = getResultCopy(session, reason)
+  const resultCopy = getResultCopy(session, reason, card)
   const ResultIcon = resultCopy.icon
 
   return (

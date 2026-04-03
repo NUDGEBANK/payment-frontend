@@ -4,6 +4,7 @@ import { formatCurrency } from '../../api/mockClient'
 import { fetchPaymentSession } from '../../api/userApi'
 import { AppFrame, Content, PageHeader, PrimaryButton, SecondaryButton, SectionCard } from '../../components/ui'
 import type { PaymentSession } from '../../types/payment'
+import { Check } from 'lucide-react'
 
 export function TerminalDecisionPage() {
   const navigate = useNavigate()
@@ -40,7 +41,7 @@ export function TerminalDecisionPage() {
         <div className="space-y-6">
           <SectionCard className="text-center">
             <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-[28px] border border-blue-200 bg-blue-50 text-4xl text-blue-600">
-              QR
+              <Check />
             </div>
             <h2 className="mt-8 text-5xl font-black tracking-[-0.05em] text-slate-800">결제 승인 요청</h2>
             <p className="mt-3 text-base font-semibold text-slate-400">
@@ -57,7 +58,7 @@ export function TerminalDecisionPage() {
             <div className="space-y-4">
               <div>
                 <p className="text-sm font-bold text-slate-400">주문 상품</p>
-                <p className="mt-2 text-3xl font-black tracking-[-0.05em] text-slate-800">
+                <p className="mt-2 text-xl font-black tracking-[-0.05em] text-slate-800">
                   {session.menuName}
                 </p>
               </div>
@@ -68,7 +69,7 @@ export function TerminalDecisionPage() {
                 </div>
                 <div>
                   <p className="text-sm font-bold text-slate-400">QR ID</p>
-                  <p className="mt-1 truncate text-lg font-black text-slate-700">{session.qrId}</p>
+                  <p className="mt-1 break-all text-lg font-black text-slate-700">{session.qrId}</p>
                 </div>
               </div>
             </div>

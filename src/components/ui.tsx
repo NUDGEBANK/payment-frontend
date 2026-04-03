@@ -101,7 +101,7 @@ export function PillButton({
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-2xl px-4 py-2 text-sm font-bold transition ${
+      className={`inline-flex shrink-0 items-center justify-center whitespace-nowrap rounded-2xl px-4 py-2 text-sm font-bold transition ${
         active
           ? 'bg-blue-600 text-white shadow-[0_10px_24px_rgba(37,99,235,0.3)]'
           : 'bg-slate-100 text-slate-500'
