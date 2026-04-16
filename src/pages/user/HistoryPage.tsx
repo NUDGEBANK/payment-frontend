@@ -48,7 +48,7 @@ export function HistoryPage() {
       <Content>
         <SectionCard className="bg-[linear-gradient(135deg,_#edf6ff,_#eff6ff)]">
           <p className="text-sm font-bold text-slate-500">이번 달 총 지출</p>
-          <p className="mt-2 text-5xl font-black tracking-[-0.05em] text-slate-800">
+          <p className="mt-2 text-4xl font-black tracking-[-0.05em] text-slate-800">
             {formatCurrency(summary?.currentMonthSpending ?? 0)}
           </p>
           <div className="mt-5 flex items-center justify-between border-t border-white/70 pt-4">

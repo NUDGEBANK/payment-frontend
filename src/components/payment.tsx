@@ -7,7 +7,6 @@ import { CheckIcon, CloseIcon } from './icons'
 import { PrimaryButton, SecondaryButton, SectionCard } from './ui'
 
 export function CardVisual({
-  alias,
   balance,
   numberMasked,
 }: {
@@ -17,14 +16,10 @@ export function CardVisual({
 }) {
   return (
     <SectionCard className="bg-[linear-gradient(135deg,_#e0f2fe,_#eff6ff_58%,_#e2e8f0)]">
-      <div className="mb-3 flex items-center justify-between text-xs font-bold tracking-[0.24em] text-slate-400">
-        <span>REGISTERED CARD</span>
-        <span>VIRTUAL PAY</span>
-      </div>
       <div className="space-y-2">
         <p className="text-sm font-bold text-slate-500">현재 잔액</p>
-        <p className="text-4xl font-black tracking-[-0.05em] text-slate-800">{formatCurrency(balance)}</p>
-        <p className="text-sm font-semibold text-slate-500">{alias} · {numberMasked}</p>
+        <p className="text-3xl font-black tracking-[-0.05em] text-slate-800">{formatCurrency(balance)}</p>
+        <p className="text-sm font-semibold text-slate-500">{numberMasked}</p>
       </div>
     </SectionCard>
   )
@@ -299,13 +294,13 @@ export function TransactionList({ items }: { items: TransactionItem[] }) {
       {items.map((item) => (
         <article key={item.transactionId} className="flex items-center justify-between rounded-[24px] bg-white p-4 shadow-[0_10px_30px_rgba(148,163,184,0.12)]">
           <div>
-            <p className="text-xl font-black tracking-[-0.04em] text-slate-800">{item.marketName}</p>
+            <p className="text-lg font-black tracking-[-0.04em] text-slate-800">{item.marketName}</p>
             <p className="mt-1 text-sm font-semibold text-slate-400">
               {formatDateTime(item.transactionDatetime)}
             </p>
           </div>
-          <p className="text-xl font-black text-slate-700">
-            -{formatCurrency(item.amount)}
+          <p className="text-lg font-black text-slate-700">
+            {item.menuName === "소비분석 대출" ? '+' : '-'}{formatCurrency(item.amount)}
           </p>
         </article>
       ))}
