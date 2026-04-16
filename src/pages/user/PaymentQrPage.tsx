@@ -101,7 +101,7 @@ export function PaymentQrPage() {
         <div className="space-y-6">
           <SectionCard className="text-center">
             <p className="text-sm font-bold text-slate-400">결제 금액</p>
-            <p className="mt-2 text-5xl font-black tracking-[-0.06em] text-slate-800">{formatCurrency(session.paymentAmount)}</p>
+            <p className="mt-2 text-4xl font-black tracking-[-0.06em] text-slate-800">{formatCurrency(session.paymentAmount)}</p>
             <p className="text-base font-semibold text-slate-400">{itemLabel}</p>
           </SectionCard>
           <QrPlaceholder code={session.qrId} />

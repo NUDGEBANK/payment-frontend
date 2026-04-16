@@ -15,7 +15,6 @@ export function UserHomePage() {
       <Content>
         <div className="flex min-h-full flex-col justify-center space-y-6">
           <SectionCard className="bg-[linear-gradient(135deg,_#edf6ff,_#eff6ff)] text-center">
-            <p className="text-sm font-black tracking-[0.22em] text-blue-500">USER APP</p>
             <h2 className="mt-4 text-4xl font-black tracking-[-0.05em] text-slate-800">
               카드를 등록하고
               <br />

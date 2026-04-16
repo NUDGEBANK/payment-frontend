@@ -103,10 +103,10 @@ export function PaymentResultPage() {
       <Content>
         <div className="space-y-6">
           <SectionCard className="text-center">
-            <div className={`mx-auto flex h-24 w-24 items-center justify-center rounded-[28px] text-4xl ${resultCopy.iconClassName}`}>
+            <div className={`mx-auto flex h-24 w-24 items-center justify-center rounded-[28px] text-3xl ${resultCopy.iconClassName}`}>
               <ResultIcon className="h-10 w-10" />
             </div>
-            <h2 className="mt-6 text-5xl font-black tracking-[-0.05em] text-slate-800">
+            <h2 className="mt-6 text-4xl font-black tracking-[-0.05em] text-slate-800">
               {resultCopy.title}
             </h2>
             <p className="mt-3 text-base font-semibold text-slate-400">
@@ -129,7 +129,7 @@ export function PaymentResultPage() {
               </div>
               <div className="flex items-center justify-between border-t border-slate-100 pt-5">
                 <span className="text-base font-bold text-slate-400">결제 금액</span>
-                <span className="text-4xl font-black text-blue-600">{formatCurrency(session.paymentAmount)}</span>
+                <span className="text-2xl font-black text-blue-600">{formatCurrency(session.paymentAmount)}</span>
               </div>
               <div className="flex items-center justify-between border-t border-slate-100 pt-5">
                 <span className="text-base font-bold text-slate-400">현재 잔액</span>

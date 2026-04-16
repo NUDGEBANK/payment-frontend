@@ -66,10 +66,6 @@ export function CardRegisterPage() {
       <PageHeader title="카드 등록" backTo="/user" />
       <Content>
         <div className="space-y-6">
-          <div>
-            <h2 className="text-5xl font-black tracking-[-0.05em] text-slate-800">내 카드 등록</h2>
-            <p className="mt-3 text-sm font-bold tracking-[0.24em] text-slate-400">REGISTER CARD</p>
-          </div>
           <div className="space-y-4 rounded-[30px] bg-slate-50 p-5">
             <Field label="카드번호">
               <TextInput

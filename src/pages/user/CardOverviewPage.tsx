@@ -19,12 +19,11 @@ export function CardOverviewPage() {
 
   return (
     <AppFrame>
-      <PageHeader title="카드" backTo="/user" />
+      <PageHeader title="등록된 카드" backTo="/user" />
       <Content>
         <div className="space-y-6">
           <div>
-            <p className="text-sm font-black tracking-[0.24em] text-slate-400">REGISTERED CARD</p>
-            <h2 className="mt-3 text-5xl font-black tracking-[-0.05em] text-slate-800">{card.alias}</h2>
+            <h2 className="mt-3 text-4xl font-black tracking-[-0.05em] text-slate-800">{card.alias}</h2>
           </div>
           <CardVisual alias={card.alias} balance={card.balance} numberMasked={card.numberMasked} />
           <PrimaryButton className="w-full" onClick={() => navigate('/user/shop')}>
