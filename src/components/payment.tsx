@@ -300,7 +300,7 @@ export function TransactionList({ items }: { items: TransactionItem[] }) {
             </p>
           </div>
           <p className="text-lg font-black text-slate-700">
-            {item.menuName === "소비분석 대출" ? '+' : '-'}{formatCurrency(item.amount)}
+            {item.menuName === "소비분석 대출" || item.menuName === "자기계발 대출" ? '+' : '-'}{formatCurrency(item.amount)}
           </p>
         </article>
       ))}

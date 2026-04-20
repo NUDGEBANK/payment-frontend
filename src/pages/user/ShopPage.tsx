@@ -7,6 +7,15 @@ import { PaymentSummary, ProductCard } from '../../components/payment'
 import { AppFrame, BottomNav, Content, PageHeader, PillButton } from '../../components/ui'
 import type { Category, Market, MenuItem } from '../../types/payment'
 
+const menuImageModules = import.meta.glob('../../assets/*', {
+  eager: true,
+  import: 'default',
+}) as Record<string, string>
+
+const getMenuImage = (menuId: number) => {
+  return menuImageModules[`../../assets/${menuId}.png`] ?? menuImageModules[`../../assets/${menuId}.jpg`] ?? ''
+}
+
 export function ShopPage() {
   const navigate = useNavigate()
   const { card, setActivePayment } = useUserApp()
@@ -121,7 +130,7 @@ export function ShopPage() {
                   id: String(menu.menuId),
                   name: menu.menuName,
                   price: menu.price,
-                  image: '',
+                  image: getMenuImage(menu.menuId),
                 }}
                 quantity={selectedMenuId === menu.menuId ? quantity : 0}
                 onChange={(next) => handleMenuChange(menu, next)}
